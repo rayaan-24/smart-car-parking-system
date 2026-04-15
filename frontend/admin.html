@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Parking - Admin Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="nav-brand-logo">
+                <svg viewBox="0 0 24 24"><path d="M13 3L4 14h7v7l9-11h-7V3z"/></svg>
+            </div>
+            <h2>SmartPark AI</h2>
+            <span style="
+                padding: 4px 12px;
+                background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
+                border: 1px solid rgba(239, 68, 68, 0.3);
+                border-radius: 50px;
+                font-size: 11px;
+                font-weight: 600;
+                color: #ef4444;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                margin-left: 12px;
+            ">Admin</span>
+        </div>
+        <div class="nav-user">
+            <div class="nav-user-info">
+                <div class="nav-user-avatar" id="adminAvatar" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">A</div>
+                <span class="nav-user-name" id="adminName">Admin</span>
+            </div>
+            <button onclick="logout()" class="btn btn-secondary btn-small">Logout</button>
+        </div>
+    </nav>
+    
+    <main class="main-container">
+        <div class="dashboard">
+            <section class="hero-section">
+                <div class="hero-badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17"/></svg>
+                    Administrator Control Panel
+                </div>
+                <h1 class="hero-title">Parking Management System</h1>
+                <p class="hero-subtitle">Monitor, manage, and optimize your parking infrastructure with real-time insights</p>
+            </section>
+            
+            <section class="stats-grid">
+                <div class="stat-card total">
+                    <div class="stat-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+                    </div>
+                    <h3>Total Slots</h3>
+                    <div class="value" id="totalSlots">-</div>
+                </div>
+                <div class="stat-card available">
+                    <div class="stat-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+                    </div>
+                    <h3>Available</h3>
+                    <div class="value" id="availableSlots">-</div>
+                </div>
+                <div class="stat-card occupied">
+                    <div class="stat-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+                    </div>
+                    <h3>Occupied</h3>
+                    <div class="value" id="occupiedSlots">-</div>
+                </div>
+                <div class="stat-card reserved">
+                    <div class="stat-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                    </div>
+                    <h3>Total Users</h3>
+                    <div class="value" id="totalUsers">-</div>
+                </div>
+            </section>
+            
+            <div class="admin-tabs" style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
+                <button class="tab-btn active" onclick="showAdminTab('slots')" style="
+                    flex: 1;
+                    min-width: 150px;
+                    padding: 14px 24px;
+                    border: none;
+                    background: var(--bg-glass);
+                    color: var(--text-secondary);
+                    cursor: pointer;
+                    border-radius: var(--radius-md);
+                    transition: all var(--transition-normal);
+                    font-size: 14px;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                ">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    Manage Slots
+                </button>
+                <button class="tab-btn" onclick="showAdminTab('reservations')" style="
+                    flex: 1;
+                    min-width: 150px;
+                    padding: 14px 24px;
+                    border: none;
+                    background: var(--bg-glass);
+                    color: var(--text-secondary);
+                    cursor: pointer;
+                    border-radius: var(--radius-md);
+                    transition: all var(--transition-normal);
+                    font-size: 14px;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                ">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                    Reservations
+                </button>
+                <button class="tab-btn" onclick="showAdminTab('users')" style="
+                    flex: 1;
+                    min-width: 150px;
+                    padding: 14px 24px;
+                    border: none;
+                    background: var(--bg-glass);
+                    color: var(--text-secondary);
+                    cursor: pointer;
+                    border-radius: var(--radius-md);
+                    transition: all var(--transition-normal);
+                    font-size: 14px;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                ">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                    Users
+                </button>
+            </div>
+            
+            <div id="slotsTab" class="parking-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <div class="section-title-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                        </div>
+                        Parking Slots Management
+                    </h2>
+                </div>
+                
+                <div class="legend-container">
+                    <div class="legend-item">
+                        <div class="legend-dot available"></div>
+                        <span>Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot occupied"></div>
+                        <span>Occupied</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot reserved"></div>
+                        <span>Reserved</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot maintenance"></div>
+                        <span>Maintenance</span>
+                    </div>
+                </div>
+                
+                <div class="parking-map-container">
+                    <div class="parking-map-header">
+                        <div class="facility-info">
+                            <div class="facility-logo">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M13 3L4 14h7v7l9-11h-7V3z"/></svg>
+                            </div>
+                            <div>
+                                <div class="facility-name">Admin Control Center</div>
+                                <div class="facility-status">All Systems Operational</div>
+                            </div>
+                        </div>
+                        <div class="map-controls">
+                            <div class="gate-badge gate-entry" id="entryBtn" onclick="setNavigationMode('entry')" style="cursor: pointer;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                ENTRY
+                            </div>
+                            <div class="gate-badge gate-exit" id="exitBtn" onclick="setNavigationMode('exit')" style="cursor: pointer;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+                                EXIT
+                            </div>
+                            <div class="compass-widget">
+                                <div class="compass-needle"></div>
+                            </div>
+                        </div>
+                        <div id="navModeIndicator" style="display: none; position: absolute; left: 24px; bottom: 8px; background: rgba(16, 185, 129, 0.9); color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;">
+                            <span id="navModeText"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="parking-area">
+                        <svg class="path-overlay" id="pathOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:20;"></svg>
+                        
+                        <div class="real-parking-lot-layout">
+                            <div class="gate-area entry">
+                                <div class="gate-structure">
+                                    <div class="gate-arm"></div>
+                                    <div class="gate-pole"></div>
+                                </div>
+                                <div class="gate-label">ENTRY</div>
+                                <div class="gate-light"></div>
+                            </div>
+                            
+                            <div class="parking-main-area">
+                                <div class="asphalt-bg"></div>
+                                
+                                <div class="road-network">
+                                    <div class="main-road-horizontal"></div>
+                                </div>
+                                
+                                <div class="parking-zones" id="adminParkingZones"></div>
+                                
+                                <div id="adminParkingGrid"></div>
+                            </div>
+                            
+                            <div class="gate-area exit">
+                                <div class="gate-structure">
+                                    <div class="gate-arm"></div>
+                                    <div class="gate-pole"></div>
+                                </div>
+                                <div class="gate-label">EXIT</div>
+                                <div class="gate-light"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="parking-footer">
+                        <div class="footer-stats">
+                            <div class="footer-stat">
+                                <div class="footer-stat-dot available"></div>
+                                <span>Available: <strong id="footerAvailable">0</strong></span>
+                            </div>
+                            <div class="footer-stat">
+                                <div class="footer-stat-dot occupied"></div>
+                                <span>Occupied: <strong id="footerOccupied">0</strong></span>
+                            </div>
+                            <div class="footer-stat">
+                                <div class="footer-stat-dot reserved"></div>
+                                <span>Reserved: <strong id="footerReserved">0</strong></span>
+                            </div>
+                        </div>
+                        <div class="footer-legend">
+                            <div class="footer-legend-item">
+                                <div class="footer-legend-box available"></div>
+                                Free
+                            </div>
+                            <div class="footer-legend-item">
+                                <div class="footer-legend-box occupied"></div>
+                                Taken
+                            </div>
+                            <div class="footer-legend-item">
+                                <div class="footer-legend-box reserved"></div>
+                                Booked
+                            </div>
+                            <div class="footer-legend-item">
+                                <div class="footer-legend-box maintenance"></div>
+                                Service
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="reservationsTab" class="reservations-section" style="display: none;">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <div class="section-title-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                        </div>
+                        All Reservations
+                    </h2>
+                </div>
+                <div id="allReservations" class="reservations-list"></div>
+            </div>
+            
+            <div id="usersTab" class="reservations-section" style="display: none;">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <div class="section-title-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                        </div>
+                        Registered Users
+                    </h2>
+                </div>
+                <div id="usersList" class="reservations-list"></div>
+            </div>
+            
+            <div id="activityTab" class="reservations-section" style="display: none;">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <div class="section-title-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+                        </div>
+                        Activity Logs
+                    </h2>
+                </div>
+                <div id="activityLogs" class="reservations-list"></div>
+            </div>
+        </div>
+    </main>
+    
+    <div id="slotEditModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <div class="modal-title-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </div>
+                    Edit Slot Status
+                </h2>
+                <button class="close" onclick="closeModal('slotEditModal')">&times;</button>
+            </div>
+            
+            <form id="slotEditForm">
+                <input type="hidden" id="editSlotId">
+                
+                <div style="
+                    background: var(--bg-glass);
+                    border: 1px solid var(--border);
+                    border-radius: var(--radius-md);
+                    padding: 20px;
+                    margin-bottom: 20px;
+                    text-align: center;
+                ">
+                    <p style="color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Slot Code</p>
+                    <p style="font-size: 32px; font-weight: 700; color: var(--primary-light);" id="editSlotCode">-</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editSlotStatus">New Status</label>
+                    <select id="editSlotStatus" name="status" required>
+                        <option value="available">Available</option>
+                        <option value="occupied">Occupied</option>
+                        <option value="reserved">Reserved</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+                    Update Status
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div id="message" class="message"></div>
+    
+    <script src="js/admin.js"></script>
+</body>
+</html>

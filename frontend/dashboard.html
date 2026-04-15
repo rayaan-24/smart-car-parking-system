@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Parking - Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="nav-brand-logo">
+                <svg viewBox="0 0 24 24"><path d="M13 3L4 14h7v7l9-11h-7V3z"/></svg>
+            </div>
+            <h2>SmartPark AI</h2>
+        </div>
+        <div class="nav-user">
+            <div class="nav-user-info">
+                <div class="nav-user-avatar" id="userAvatar">U</div>
+                <span class="nav-user-name" id="userName">User</span>
+            </div>
+            <button onclick="logout()" class="btn btn-secondary btn-small">Logout</button>
+        </div>
+    </nav>
+    
+    <main class="main-container">
+        <div class="dashboard">
+            <section class="hero-section">
+                <div class="hero-badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                    AI-Powered Parking System
+                </div>
+                <h1 class="hero-title">Find Your Perfect Parking Spot</h1>
+                <p class="hero-subtitle">Intelligent slot allocation using advanced genetic algorithms for optimal positioning</p>
+            </section>
+            
+            <section class="stats-grid">
+                <div class="stat-card available">
+                    <div class="stat-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+                    </div>
+                    <h3>Available</h3>
+                    <div class="value" id="availableCount">-</div>
+                </div>
+                <div class="stat-card occupied">
+                    <div class="stat-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+                    </div>
+                    <h3>Occupied</h3>
+                    <div class="value" id="occupiedCount">-</div>
+                </div>
+                <div class="stat-card reserved">
+                    <div class="stat-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                    </div>
+                    <h3>Reserved</h3>
+                    <div class="value" id="reservedCount">-</div>
+                </div>
+                <div class="stat-card total">
+                    <div class="stat-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+                    </div>
+                    <h3>Total Slots</h3>
+                    <div class="value" id="totalCount">-</div>
+                </div>
+            </section>
+            
+            <section class="parking-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <div class="section-title-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                        </div>
+                        Live Parking Map
+                    </h2>
+                    <div class="section-actions">
+                        <button onclick="useAISlot()" class="btn btn-ai">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                            AI Optimize
+                        </button>
+                        <button onclick="showReserveModal()" class="btn btn-primary">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                            Reserve Slot
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="legend-container">
+                    <div class="legend-item">
+                        <div class="legend-dot available"></div>
+                        <span>Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot occupied"></div>
+                        <span>Occupied</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot reserved"></div>
+                        <span>Reserved</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot maintenance"></div>
+                        <span>Maintenance</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot ai-assigned"></div>
+                        <span>AI Best Match</span>
+                    </div>
+                </div>
+                
+                <div class="parking-map-container">
+                    <div class="parking-map-header">
+                        <div class="facility-info">
+                            <div class="facility-logo">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M13 3L4 14h7v7l9-11h-7V3z"/></svg>
+                            </div>
+                            <div>
+                                <div class="facility-name">Downtown Parking Center</div>
+                                <div class="facility-status">System Online</div>
+                            </div>
+                        </div>
+                        <div class="map-controls">
+                            <div class="gate-badge gate-entry" id="entryBtn" onclick="setNavigationMode('entry')" style="cursor: pointer;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                ENTRY
+                            </div>
+                            <div class="gate-badge gate-exit" id="exitBtn" onclick="setNavigationMode('exit')" style="cursor: pointer;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+                                EXIT
+                            </div>
+                            <div class="compass-widget">
+                                <div class="compass-needle"></div>
+                            </div>
+                        </div>
+                        <div id="navModeIndicator" style="display: none; position: absolute; left: 24px; bottom: 8px; background: rgba(16, 185, 129, 0.9); color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;">
+                            <span id="navModeText"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="parking-area">
+                        <svg class="path-overlay" id="pathOverlay"></svg>
+                        
+                        <div class="real-parking-lot-layout">
+                            <div class="gate-area entry">
+                                <div class="gate-structure">
+                                    <div class="gate-arm"></div>
+                                    <div class="gate-pole"></div>
+                                </div>
+                                <div class="gate-label">ENTRY</div>
+                                <div class="gate-light"></div>
+                            </div>
+                            
+                            <div class="parking-main-area">
+                                <div class="asphalt-bg"></div>
+                                
+                                <div class="road-network">
+                                    <div class="main-road-horizontal"></div>
+                                </div>
+                                
+                                <div class="parking-zones" id="parkingZones"></div>
+                                
+                                <div id="parkingGrid"></div>
+                            </div>
+                            
+                            <div class="gate-area exit">
+                                <div class="gate-structure">
+                                    <div class="gate-arm"></div>
+                                    <div class="gate-pole"></div>
+                                </div>
+                                <div class="gate-label">EXIT</div>
+                                <div class="gate-light"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="parking-footer">
+                        <div class="footer-stats">
+                            <div class="footer-stat">
+                                <div class="footer-stat-dot available"></div>
+                                <span>Available: <strong id="footerAvailable">0</strong></span>
+                            </div>
+                            <div class="footer-stat">
+                                <div class="footer-stat-dot occupied"></div>
+                                <span>Occupied: <strong id="footerOccupied">0</strong></span>
+                            </div>
+                            <div class="footer-stat">
+                                <div class="footer-stat-dot reserved"></div>
+                                <span>Reserved: <strong id="footerReserved">0</strong></span>
+                            </div>
+                        </div>
+                        <div class="footer-legend">
+                            <div class="footer-legend-item">
+                                <div class="footer-legend-box available"></div>
+                                Free
+                            </div>
+                            <div class="footer-legend-item">
+                                <div class="footer-legend-box occupied"></div>
+                                Taken
+                            </div>
+                            <div class="footer-legend-item">
+                                <div class="footer-legend-box reserved"></div>
+                                Booked
+                            </div>
+                            <div class="footer-legend-item">
+                                <div class="footer-legend-box ai-assigned"></div>
+                                AI Best
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="reservations-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <div class="section-title-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>
+                        </div>
+                        My Reservations
+                    </h2>
+                </div>
+                <div id="reservationsList" class="reservations-list"></div>
+            </section>
+        </div>
+    </main>
+    
+    <div id="reserveModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <div class="modal-title-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                    </div>
+                    Reserve Parking Slot
+                </h2>
+                <button class="close" onclick="closeModal('reserveModal')">&times;</button>
+            </div>
+            
+            <form id="reserveForm">
+                <div class="form-group">
+                    <label for="selectedSlot">Select Parking Slot</label>
+                    <select id="selectedSlot" name="slot_id" required>
+                        <option value="">Choose a slot...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="reservationDate">Reservation Date</label>
+                    <input type="date" id="reservationDate" name="date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="startTime">Start Time</label>
+                    <input type="time" id="startTime" name="start_time" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="endTime">End Time</label>
+                    <input type="time" id="endTime" name="end_time" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="vehiclePlate">Vehicle Plate (Optional)</label>
+                    <input type="text" id="vehiclePlate" name="vehicle_plate" placeholder="ABC-1234">
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+                    Confirm Reservation
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div id="aiResultModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <div class="modal-title-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                    </div>
+                    AI-Recommended Slot
+                </h2>
+                <button class="close" onclick="closeModal('aiResultModal')">&times;</button>
+            </div>
+            <div id="aiResult"></div>
+        </div>
+    </div>
+    
+    <div id="slotDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <div class="modal-title-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                    </div>
+                    Slot Details & Path
+                </h2>
+                <button class="close" onclick="closeModal('slotDetailModal')">&times;</button>
+            </div>
+            <div id="slotDetailContent"></div>
+        </div>
+    </div>
+    
+    <div id="message" class="message"></div>
+    
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

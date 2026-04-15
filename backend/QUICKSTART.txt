@@ -1,0 +1,60 @@
+# Smart Parking Management System - Quick Start
+
+## Login Credentials
+```
+Email:    admin@parking.com
+Password:  admin123
+```
+
+## Setup Instructions
+
+### Step 1: Initialize Database
+```bash
+cd backend
+python database/setup_database.py
+```
+
+This will:
+- Create the database `parking_db`
+- Create all required tables
+- Create admin user with password `admin123`
+- Create 50 parking slots (A1-E10)
+
+### Step 2: Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### Step 3: Run the Application
+```bash
+python app.py
+```
+
+### Step 4: Access the Application
+Open browser: http://localhost:5000
+
+---
+
+## Troubleshooting
+
+### "Cannot connect to MySQL"
+1. Make sure MySQL service is running
+2. Check credentials in `.env` file
+3. Verify MySQL credentials match your setup
+
+### "Login not working"
+1. Run `python database/setup_database.py` to reset the admin password
+2. Or run `python database/fix_admin.py` to update existing admin
+
+### "Module not found"
+```bash
+pip install flask flask-cors flask-session pymysql bcrypt python-dotenv cryptography
+```
+
+---
+
+## Features
+- Real-time parking slot visualization
+- AI-powered slot recommendation using Genetic Algorithm
+- Reservation system
+- Admin dashboard for slot management
