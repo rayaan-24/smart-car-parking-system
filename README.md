@@ -10,6 +10,7 @@ A production-ready AI-powered parking management system using Genetic Algorithm 
   - Secure authentication (login/register)
   - Real-time parking availability dashboard
   - AI-based optimal slot recommendation
+  - Live parking map visualization
   - Slot reservation system
   - Booking history
 
@@ -19,6 +20,7 @@ A production-ready AI-powered parking management system using Genetic Algorithm 
   - Reservation management
   - User monitoring
   - Activity logs
+  - Live parking map view
 
 - **AI Feature**
   - Genetic Algorithm for optimal slot selection
@@ -41,10 +43,14 @@ A production-ready AI-powered parking management system using Genetic Algorithm 
 │   ├── app.py                 # Flask application
 │   ├── config.py              # Configuration
 │   ├── requirements.txt       # Dependencies
+│   ├── .env                   # Environment variables
+│   ├── setup.bat/.sh         # Setup scripts
 │   ├── database/
 │   │   ├── schema.sql         # Database schema
 │   │   ├── connection.py      # DB connection
-│   │   └── init_db.py         # DB initialization
+│   │   ├── init_db.py         # DB initialization
+│   │   ├── setup_database.py  # Database setup
+│   │   └── fix_admin.py       # Admin account fix
 │   ├── models/
 │   │   ├── user.py            # User model
 │   │   ├── slot.py            # Slot model
@@ -53,7 +59,7 @@ A production-ready AI-powered parking management system using Genetic Algorithm 
 │   │   ├── auth.py            # Authentication routes
 │   │   ├── parking.py         # Parking routes
 │   │   ├── reservation.py     # Reservation routes
-│   │   └── admin.py            # Admin routes
+│   │   └── admin.py           # Admin routes
 │   ├── services/
 │   │   └── ga_algorithm.py    # Genetic Algorithm
 │   └── utils/
@@ -63,12 +69,15 @@ A production-ready AI-powered parking management system using Genetic Algorithm 
     ├── index.html             # Login/Register
     ├── dashboard.html         # User dashboard
     ├── admin.html             # Admin dashboard
+    ├── parking-map.html       # Live parking map with GA
     ├── css/
-    │   └── style.css          # Styling
+    │   ├── style.css          # Main styling
+    │   └── parking-map.css    # Map styling
     └── js/
         ├── auth.js            # Auth logic
         ├── dashboard.js       # Dashboard logic
-        └── admin.js           # Admin logic
+        ├── admin.js           # Admin logic
+        └── parking-map.js     # Map logic with GA
 ```
 
 ## Quick Start
@@ -87,10 +96,6 @@ mysql -u root -p < database/schema.sql
 ```bash
 cd backend
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
 # Install dependencies
 pip install -r requirements.txt
 
@@ -98,8 +103,9 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with your MySQL credentials
 
-# Initialize database
+# Initialize database (creates tables and admin user)
 python database/init_db.py
+python database/setup_database.py
 
 # Run Flask app
 python app.py
@@ -111,7 +117,9 @@ Backend will be available at: http://localhost:5000
 
 The frontend is served by Flask automatically. Open:
 - User login: http://localhost:5000
-- Admin dashboard: Login with admin account
+- User dashboard: http://localhost:5000/dashboard.html
+- Admin dashboard: http://localhost:5000/admin.html
+- Live parking map: http://localhost:5000/parking-map.html
 
 ### 4. Default Admin Account
 

@@ -34,6 +34,42 @@ let selectedSlot = null;
 let assignedSlot = null;
 let isGARunning = false;
 
+function getElementCenter(element, container) {
+    const rect = element.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    return {
+        x: rect.left + rect.width / 2 - containerRect.left,
+        y: rect.top + rect.height / 2 - containerRect.top
+    };
+}
+
+function getSVGCoordinates(element, svg) {
+    const rect = element.getBoundingClientRect();
+    const svgRect = svg.getBoundingClientRect();
+    
+    const viewBox = svg.viewBox.baseVal;
+    const scaleX = viewBox.width / svgRect.width;
+    const scaleY = viewBox.height / svgRect.height;
+    
+    return {
+        x: (rect.left + rect.width / 2 - svgRect.left) * scaleX,
+        y: (rect.top + rect.height / 2 - svgRect.top) * scaleY
+    };
+}
+
+function getRoadCenterY(slotRow, container) {
+    const roads = container.querySelectorAll('.main-road');
+    if (roads.length === 0) return 325;
+    
+    if (slotRow === 'A') {
+        return getElementCenter(roads[0], container).y;
+    } else if (slotRow === 'B') {
+        return roads.length > 1 ? getElementCenter(roads[1], container).y : getElementCenter(roads[0], container).y;
+    } else {
+        return roads.length > 1 ? getElementCenter(roads[1], container).y : getElementCenter(roads[0], container).y;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initParkingMap();
     startClock();
@@ -96,10 +132,10 @@ function generateDemoSlots() {
 }
 
 function calculateDistance(rowIndex, colIndex) {
-    const baseDist = 10;
-    const rowDist = rowIndex * 80;
-    const colDist = colIndex * 12;
-    return baseDist + rowDist + colDist;
+    const rowOffset = [0, 170, 280][rowIndex] || 0;
+    const baseDist = 50;
+    const colDist = colIndex * 10;
+    return baseDist + colDist + rowOffset;
 }
 
 async function loadSlotsFromBackend() {
@@ -283,27 +319,43 @@ function getSlotPosition(slot) {
 function drawPathToSlot(slot) {
     const svg = document.getElementById('pathSvg');
     const pathGroup = document.getElementById('pathGroup');
-    if (!svg || !pathGroup) return;
+    const container = document.querySelector('.parking-lot-container');
+    
+    if (!svg || !pathGroup || !container) return;
     
     pathGroup.innerHTML = '';
     
-    // Entry point - calibrated to match left side gate position
-    const entryX = 30;
-    const entryY = 325; // Middle of the layout
+    const entryGate = container.querySelector('.gate-entry');
+    const slotElement = container.querySelector(`[data-slot-id="${slot.id}"]`);
     
-    // Slot position using calibrated function
-    const slotPos = getSlotPosition(slot);
+    if (!entryGate || !slotElement) return;
     
-    // Calculate waypoints
-    const waypoints = calculateWaypoints(entryX, entryY, slot);
+    const entry = getSVGCoordinates(entryGate, svg);
+    const slotPos = getSVGCoordinates(slotElement, svg);
+    const roadY = getRoadCenterY(slot.row, container);
     
-    // Create path
-    let pathD = `M ${waypoints[0].x} ${waypoints[0].y}`;
-    for (let i = 1; i < waypoints.length; i++) {
-        pathD += ` L ${waypoints[i].x} ${waypoints[i].y}`;
-    }
+    const svgRect = svg.getBoundingClientRect();
+    const viewBox = svg.viewBox.baseVal;
+    const scaleX = viewBox.width / svgRect.width;
+    const scaleY = viewBox.height / svgRect.height;
+    const roadYSvg = roadY * scaleY;
     
-    // Draw path
+    const pathPoints = [
+        { x: entry.x, y: entry.y },
+        { x: entry.x, y: roadYSvg },
+        { x: slotPos.x, y: roadYSvg },
+        { x: slotPos.x, y: slotPos.y }
+    ];
+    
+    let pathD;
+    const controlOffset = Math.min(Math.abs(slotPos.y - roadYSvg) * 0.5, 50);
+    
+    pathD = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
+    pathD += ` Q ${pathPoints[0].x} ${roadYSvg} ${(pathPoints[0].x + pathPoints[1].x) / 2} ${roadYSvg}`;
+    pathD += ` L ${pathPoints[2].x} ${roadYSvg}`;
+    pathD += ` Q ${pathPoints[2].x} ${roadYSvg} ${pathPoints[2].x} ${(roadYSvg + pathPoints[3].y) / 2}`;
+    pathD += ` L ${pathPoints[3].x} ${pathPoints[3].y}`;
+    
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', pathD);
     path.setAttribute('stroke', 'url(#pathGrad)');
@@ -317,18 +369,17 @@ function drawPathToSlot(slot) {
     path.style.animation = 'drawPath 1.5s ease forwards';
     pathGroup.appendChild(path);
     
-    // Start marker
     const startMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    startMarker.setAttribute('cx', entryX);
-    startMarker.setAttribute('cy', entryY);
+    startMarker.setAttribute('cx', entry.x);
+    startMarker.setAttribute('cy', entry.y);
     startMarker.setAttribute('r', '15');
     startMarker.setAttribute('fill', '#10b981');
     startMarker.setAttribute('filter', 'url(#glow)');
     pathGroup.appendChild(startMarker);
     
     const startLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    startLabel.setAttribute('x', entryX);
-    startLabel.setAttribute('y', entryY + 5);
+    startLabel.setAttribute('x', entry.x);
+    startLabel.setAttribute('y', entry.y + 4);
     startLabel.setAttribute('text-anchor', 'middle');
     startLabel.setAttribute('fill', 'white');
     startLabel.setAttribute('font-size', '10');
@@ -336,7 +387,6 @@ function drawPathToSlot(slot) {
     startLabel.textContent = 'IN';
     pathGroup.appendChild(startLabel);
     
-    // End marker (pulsing ring)
     const endMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     endMarker.setAttribute('cx', slotPos.x);
     endMarker.setAttribute('cy', slotPos.y);
@@ -353,7 +403,6 @@ function drawPathToSlot(slot) {
     endDot.setAttribute('filter', 'url(#glow)');
     pathGroup.appendChild(endDot);
     
-    // Slot label (exact slot code)
     const slotLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     slotLabel.setAttribute('x', slotPos.x);
     slotLabel.setAttribute('y', slotPos.y + 4);
@@ -364,7 +413,6 @@ function drawPathToSlot(slot) {
     slotLabel.textContent = slot.slot_number;
     pathGroup.appendChild(slotLabel);
     
-    // Distance label box
     const distBox = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     distBox.setAttribute('x', slotPos.x - 35);
     distBox.setAttribute('y', slotPos.y + 20);
@@ -391,14 +439,12 @@ function calculateWaypoints(entryX, entryY, slot) {
     const waypoints = [{ x: entryX, y: entryY }];
     const slotPos = getSlotPosition(slot);
     
-    // Use the calibrated roadY from getSlotPosition
     const roadY = { 
         A: 50, 
         B: 270, 
         C: 490 
     };
     
-    // Direct path: Entry -> horizontal to slot X -> vertical down to slot
     waypoints.push({ x: slotPos.x, y: entryY });
     waypoints.push({ x: slotPos.x, y: slotPos.y });
     

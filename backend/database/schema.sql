@@ -121,71 +121,48 @@ INSERT INTO users (name, email, password, role) VALUES
 ('System Administrator', 'admin@parking.com', '$2b$12$A0qZmb5sS.EE50Mc7JdoA.W411IwF67RaigZFnSp1xKGc3Nmw12EC', 'admin');
 
 -- =====================================================
--- SEED DATA: PARKING SLOTS (5 rows x 10 columns = 50 slots)
+-- SEED DATA: PARKING SLOTS (3 rows x 10 columns = 30 slots)
 -- =====================================================
--- Entrance is at the front (row 0), distance increases downward
--- Slot codes: A1-A10, B1-B10, C1-C10, D1-D10, E1-E10
+-- Entrance at left side
+-- Distance formula: base 50 + (col * 10) + row_offset
+-- Row A offset: 0, Row B offset: 170, Row C offset: 280
 -- =====================================================
 INSERT INTO parking_slots (slot_code, row_num, col_num, status, slot_type, entrance_distance) VALUES
--- Row A (closest to entrance - distance: 1)
-('A1', 0, 0, 'available', 'standard', 1.0),
-('A2', 0, 1, 'available', 'standard', 1.0),
-('A3', 0, 2, 'available', 'standard', 1.0),
-('A4', 0, 3, 'available', 'compact', 1.0),
-('A5', 0, 4, 'available', 'compact', 1.0),
-('A6', 0, 5, 'available', 'compact', 1.0),
-('A7', 0, 6, 'available', 'standard', 1.0),
-('A8', 0, 7, 'available', 'standard', 1.0),
-('A9', 0, 8, 'available', 'electric', 1.0),
-('A10', 0, 9, 'available', 'electric', 1.0),
+-- Row A (offset: 0, distance: 50 + col*10)
+('A1', 0, 0, 'available', 'standard', 50.0),
+('A2', 0, 1, 'available', 'standard', 60.0),
+('A3', 0, 2, 'available', 'standard', 70.0),
+('A4', 0, 3, 'available', 'compact', 80.0),
+('A5', 0, 4, 'available', 'compact', 90.0),
+('A6', 0, 5, 'available', 'compact', 100.0),
+('A7', 0, 6, 'available', 'standard', 110.0),
+('A8', 0, 7, 'available', 'standard', 120.0),
+('A9', 0, 8, 'available', 'electric', 130.0),
+('A10', 0, 9, 'available', 'electric', 140.0),
 
--- Row B (distance: 2)
-('B1', 1, 0, 'available', 'standard', 2.0),
-('B2', 1, 1, 'available', 'standard', 2.0),
-('B3', 1, 2, 'available', 'standard', 2.0),
-('B4', 1, 3, 'available', 'compact', 2.0),
-('B5', 1, 4, 'available', 'compact', 2.0),
-('B6', 1, 5, 'available', 'compact', 2.0),
-('B7', 1, 6, 'available', 'standard', 2.0),
-('B8', 1, 7, 'available', 'standard', 2.0),
-('B9', 1, 8, 'available', 'standard', 2.0),
-('B10', 1, 9, 'available', 'handicap', 2.0),
+-- Row B (offset: 170, distance: 220 + col*10)
+('B1', 1, 0, 'available', 'standard', 220.0),
+('B2', 1, 1, 'available', 'standard', 230.0),
+('B3', 1, 2, 'available', 'standard', 240.0),
+('B4', 1, 3, 'available', 'compact', 250.0),
+('B5', 1, 4, 'available', 'compact', 260.0),
+('B6', 1, 5, 'available', 'compact', 270.0),
+('B7', 1, 6, 'available', 'standard', 280.0),
+('B8', 1, 7, 'available', 'standard', 290.0),
+('B9', 1, 8, 'available', 'standard', 300.0),
+('B10', 1, 9, 'available', 'handicap', 310.0),
 
--- Row C (distance: 3)
-('C1', 2, 0, 'available', 'standard', 3.0),
-('C2', 2, 1, 'available', 'standard', 3.0),
-('C3', 2, 2, 'available', 'standard', 3.0),
-('C4', 2, 3, 'available', 'standard', 3.0),
-('C5', 2, 4, 'available', 'standard', 3.0),
-('C6', 2, 5, 'available', 'standard', 3.0),
-('C7', 2, 6, 'available', 'standard', 3.0),
-('C8', 2, 7, 'available', 'standard', 3.0),
-('C9', 2, 8, 'available', 'standard', 3.0),
-('C10', 2, 9, 'available', 'standard', 3.0),
-
--- Row D (distance: 4)
-('D1', 3, 0, 'available', 'standard', 4.0),
-('D2', 3, 1, 'available', 'standard', 4.0),
-('D3', 3, 2, 'available', 'standard', 4.0),
-('D4', 3, 3, 'available', 'compact', 4.0),
-('D5', 3, 4, 'available', 'compact', 4.0),
-('D6', 3, 5, 'available', 'compact', 4.0),
-('D7', 3, 6, 'available', 'standard', 4.0),
-('D8', 3, 7, 'available', 'standard', 4.0),
-('D9', 3, 8, 'available', 'electric', 4.0),
-('D10', 3, 9, 'available', 'electric', 4.0),
-
--- Row E (farthest from entrance - distance: 5)
-('E1', 4, 0, 'available', 'standard', 5.0),
-('E2', 4, 1, 'available', 'standard', 5.0),
-('E3', 4, 2, 'available', 'standard', 5.0),
-('E4', 4, 3, 'available', 'standard', 5.0),
-('E5', 4, 4, 'available', 'standard', 5.0),
-('E6', 4, 5, 'available', 'standard', 5.0),
-('E7', 4, 6, 'available', 'standard', 5.0),
-('E8', 4, 7, 'available', 'standard', 5.0),
-('E9', 4, 8, 'available', 'standard', 5.0),
-('E10', 4, 9, 'available', 'standard', 5.0);
+-- Row C (offset: 280, distance: 330 + col*10)
+('C1', 2, 0, 'available', 'standard', 330.0),
+('C2', 2, 1, 'available', 'standard', 340.0),
+('C3', 2, 2, 'available', 'standard', 350.0),
+('C4', 2, 3, 'available', 'standard', 360.0),
+('C5', 2, 4, 'available', 'standard', 370.0),
+('C6', 2, 5, 'available', 'standard', 380.0),
+('C7', 2, 6, 'available', 'standard', 390.0),
+('C8', 2, 7, 'available', 'standard', 400.0),
+('C9', 2, 8, 'available', 'standard', 410.0),
+('C10', 2, 9, 'available', 'standard', 420.0);
 
 -- =====================================================
 -- SEED DATA: ADMIN SETTINGS
