@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Parking - Live Map</title>
+    <link rel="stylesheet" href="css/parking-map.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="parking-wrapper">
+        <!-- Header -->
+        <header class="parking-header">
+            <div class="header-brand">
+                <div class="brand-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M3 9h18M9 21V9"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>SMART PARKING</h1>
+                    <p>AI-Powered Genetic Algorithm System</p>
+                </div>
+            </div>
+            
+            <div class="header-controls">
+                <button class="btn-find-parking" id="btnFindParking">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                    <span>Find Parking (GA)</span>
+                </button>
+                <button class="btn-refresh" id="btnRefresh">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 4v6h-6M1 20v-6h6"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="header-stats">
+                <div class="live-indicator">
+                    <span class="pulse-dot"></span>
+                    <span>LIVE</span>
+                </div>
+                <div class="time-clock">
+                    <span id="currentTime">--:--:--</span>
+                    <span id="currentDate">----/--/--</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="stats-container">
+            <div class="stat-card available">
+                <div class="stat-icon-box">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="availableCount">0</span>
+                    <span class="stat-label">Available</span>
+                </div>
+            </div>
+            <div class="stat-card occupied">
+                <div class="stat-icon-box">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="4" y="4" width="16" height="16" rx="2"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="occupiedCount">0</span>
+                    <span class="stat-label">Occupied</span>
+                </div>
+            </div>
+            <div class="stat-card assigned">
+                <div class="stat-icon-box">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="assignedCount">0</span>
+                    <span class="stat-label">AI Assigned</span>
+                </div>
+            </div>
+            <div class="stat-card reserved">
+                <div class="stat-icon-box">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="3" y="4" width="18" height="18" rx="2"/>
+                        <path d="M16 2v4M8 2v4M3 10h18" stroke="white" stroke-width="2" fill="none"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="reservedCount">0</span>
+                    <span class="stat-label">Reserved</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Parking Layout -->
+        <div class="parking-lot-container">
+            <!-- Path SVG Overlay -->
+            <svg class="path-svg" id="pathSvg" viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <linearGradient id="pathGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#10b981"/>
+                        <stop offset="50%" style="stop-color:#3b82f6"/>
+                        <stop offset="100%" style="stop-color:#8b5cf6"/>
+                    </linearGradient>
+                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="4" result="blur"/>
+                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                </defs>
+                <g id="pathGroup"></g>
+            </svg>
+
+            <!-- Entry Gate -->
+            <div class="gate-entry">
+                <div class="gate-box">
+                    <div class="gate-pole left"></div>
+                    <div class="gate-sign">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        <span>ENTRY</span>
+                    </div>
+                    <div class="gate-pole right"></div>
+                    <div class="gate-barrier"><div class="barrier-stripes"></div></div>
+                    <div class="gate-light green"></div>
+                </div>
+            </div>
+
+            <!-- Parking Main Area -->
+            <div class="parking-main">
+                
+                <!-- Zone A -->
+                <div class="zone-row" id="zoneA">
+                    <div class="zone-label">
+                        <span class="zone-letter">A</span>
+                        <span class="zone-name">ZONE A</span>
+                    </div>
+                    <div class="slots-row">
+                        <div class="slots-grid" id="rowASlots"></div>
+                    </div>
+                </div>
+
+                <!-- Road A-B -->
+                <div class="main-road">
+                    <div class="road-surface">
+                        <div class="road-line"></div>
+                        <div class="road-arrows">
+                            <span>→</span><span>→</span><span>→</span>
+                        </div>
+                    </div>
+                    <div class="road-label">INTERSECTION</div>
+                </div>
+
+                <!-- Zone B -->
+                <div class="zone-row reversed" id="zoneB">
+                    <div class="zone-label">
+                        <span class="zone-letter">B</span>
+                        <span class="zone-name">ZONE B</span>
+                    </div>
+                    <div class="slots-row">
+                        <div class="slots-grid reversed" id="rowBSlots"></div>
+                    </div>
+                </div>
+
+                <!-- Road B-C -->
+                <div class="main-road">
+                    <div class="road-surface">
+                        <div class="road-line"></div>
+                        <div class="road-arrows">
+                            <span>→</span><span>→</span><span>→</span>
+                        </div>
+                    </div>
+                    <div class="road-label">INTERSECTION</div>
+                </div>
+
+                <!-- Zone C -->
+                <div class="zone-row" id="zoneC">
+                    <div class="zone-label">
+                        <span class="zone-letter">C</span>
+                        <span class="zone-name">ZONE C</span>
+                    </div>
+                    <div class="slots-row">
+                        <div class="slots-grid" id="rowCSlots"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exit Gate -->
+            <div class="gate-exit">
+                <div class="gate-box exit">
+                    <div class="gate-pole left"></div>
+                    <div class="gate-sign exit">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+                        <span>EXIT</span>
+                    </div>
+                    <div class="gate-pole right"></div>
+                    <div class="gate-barrier exit"><div class="barrier-stripes exit"></div></div>
+                    <div class="gate-light red"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend-bar">
+            <div class="legend-item">
+                <div class="legend-swatch available"></div>
+                <span>Available</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch occupied">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
+                </div>
+                <span>Occupied</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch assigned"></div>
+                <span>AI Assigned</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch reserved"></div>
+                <span>Reserved</span>
+            </div>
+            <div class="legend-divider"></div>
+            <div class="legend-item">
+                <div class="legend-road"></div>
+                <span>Main Road</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment Panel -->
+    <div class="assignment-panel" id="assignmentPanel">
+        <div class="panel-header">
+            <h3>AI Parking Assignment</h3>
+            <button class="panel-close" id="closePanel">&times;</button>
+        </div>
+        <div class="panel-body">
+            <div class="assigned-slot-display">
+                <div class="slot-badge" id="slotBadge">A1</div>
+                <div class="slot-details">
+                    <p class="slot-location">Zone <span id="assignedRow">A</span>, Spot <span id="assignedSpot">1</span></p>
+                    <p class="slot-distance"><span id="assignedDistance">0</span> meters from entrance</p>
+                    <p class="slot-reason">Optimized by Genetic Algorithm</p>
+                </div>
+            </div>
+            <div class="ga-stats">
+                <div class="ga-stat">
+                    <span class="ga-label">Generation</span>
+                    <span class="ga-value" id="gaGeneration">0</span>
+                </div>
+                <div class="ga-stat">
+                    <span class="ga-label">Fitness</span>
+                    <span class="ga-value" id="gaFitness">0.00</span>
+                </div>
+                <div class="ga-stat">
+                    <span class="ga-label">Elapsed</span>
+                    <span class="ga-value" id="gaElapsed">0ms</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script src="js/parking-map.js"></script>
+</body>
+</html>

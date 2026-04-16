@@ -5,6 +5,15 @@ let allUsers = [];
 let activityLogs = [];
 let navigationMode = null;
 
+const CONFIG = {
+    TOTAL_SLOTS: 30,
+    ROWS: 3,
+    COLS: 10
+};
+
+const ENTRY_POINT = { x: 860, y: 280 };
+const EXIT_POINT = { x: 150, y: 280 };
+
 function showMessage(message, type = 'error') {
     const messageDiv = document.getElementById('message');
     messageDiv.textContent = message;
@@ -81,12 +90,16 @@ async function refreshData() {
 }
 
 async function loadDashboard() {
+    console.log('Loading dashboard data...');
     try {
         const response = await fetch(`${API_BASE}/admin/dashboard`, {
             headers: getAuthHeaders()
         });
         
+        console.log('Dashboard response status:', response.status);
+        
         if (response.status === 401 || response.status === 403) {
+            console.error('Auth failed, redirecting...');
             localStorage.removeItem('user');
             localStorage.removeItem('token');
             window.location.href = 'index.html';
@@ -96,6 +109,7 @@ async function loadDashboard() {
         if (!response.ok) throw new Error('Failed to load dashboard');
         
         const data = await response.json();
+        console.log('Dashboard data:', data);
         
         document.getElementById('totalSlots').textContent = data.dashboard.parking.total_slots;
         document.getElementById('availableSlots').textContent = data.dashboard.parking.available;
@@ -115,12 +129,16 @@ async function loadDashboard() {
 }
 
 async function loadSlots() {
+    console.log('Loading slots...');
     try {
         const response = await fetch(`${API_BASE}/parking/slots`, {
             headers: getAuthHeaders()
         });
         
+        console.log('Slots response status:', response.status);
+        
         if (response.status === 401 || response.status === 403) {
+            console.error('Auth failed, redirecting...');
             localStorage.removeItem('user');
             localStorage.removeItem('token');
             window.location.href = 'index.html';
@@ -130,100 +148,230 @@ async function loadSlots() {
         if (!response.ok) throw new Error('Failed to load slots');
         
         const data = await response.json();
-        allSlots = data.slots;
+        console.log('Slots loaded:', data.slots ? data.slots.length : 0, 'slots');
+        const limitedSlots = data.slots.slice(0, CONFIG.TOTAL_SLOTS);
+        
+        const rowLabels = ['A', 'B', 'C'];
+        allSlots = limitedSlots.map((slot, index) => {
+            const rowIndex = Math.floor(index / CONFIG.COLS);
+            const colIndex = index % CONFIG.COLS;
+            
+            return {
+                ...slot,
+                row: rowLabels[rowIndex],
+                col: colIndex + 1,
+                distance: calculateSlotDistance(rowLabels[rowIndex], colIndex + 1)
+            };
+        });
         
         renderAdminParkingGrid(allSlots);
     } catch (error) {
         console.error('Error loading slots:', error);
+        generateDemoSlots();
+        renderAdminParkingGrid(allSlots);
     }
 }
 
-function renderAdminParkingGrid(slots) {
-    const grid = document.getElementById('adminParkingGrid');
-    grid.innerHTML = '';
+function generateDemoSlots() {
+    const rowLabels = ['A', 'B', 'C'];
+    const statuses = ['available', 'occupied', 'reserved', 'maintenance'];
     
-    const gridByRow = {};
-    slots.forEach(slot => {
-        if (!gridByRow[slot.row_num]) {
-            gridByRow[slot.row_num] = [];
-        }
-        gridByRow[slot.row_num].push(slot);
-    });
-    
-    const sortedRows = Object.keys(gridByRow).sort((a, b) => a - b);
-    const totalRows = sortedRows.length;
-    
-    slots.forEach(slot => {
-        const rowIndex = sortedRows.indexOf(String(slot.row_num));
-        const totalCols = gridByRow[slot.row_num].length;
-        slot.calculated_distance = calculateDistanceAdmin(rowIndex, slot.col_num, totalRows, totalCols);
-    });
-    
-    sortedRows.forEach((rowNum, index) => {
-        const rowDiv = document.createElement('div');
-        rowDiv.className = 'parking-row';
+    allSlots = [];
+    for (let i = 0; i < CONFIG.TOTAL_SLOTS; i++) {
+        const rowIndex = Math.floor(i / CONFIG.COLS);
+        const colIndex = i % CONFIG.COLS;
+        const rand = Math.random();
         
-        const sidewalk = document.createElement('div');
-        sidewalk.className = 'sidewalk';
+        let status;
+        if (rand < 0.4) status = 'available';
+        else if (rand < 0.75) status = 'occupied';
+        else if (rand < 0.9) status = 'reserved';
+        else status = 'maintenance';
         
-        const rowLabel = document.createElement('div');
-        rowLabel.className = 'row-label';
-        rowLabel.textContent = String.fromCharCode(65 + parseInt(rowNum));
-        sidewalk.appendChild(rowLabel);
-        rowDiv.appendChild(sidewalk);
+        const row = rowLabels[rowIndex];
+        const col = colIndex + 1;
         
-        const slotsContainer = document.createElement('div');
-        slotsContainer.className = 'slots-container';
-        
-        gridByRow[rowNum].sort((a, b) => a.col_num - b.col_num).forEach(slot => {
-            const slotDiv = document.createElement('div');
-            slotDiv.className = `slot ${slot.status}`;
-            slotDiv.setAttribute('data-slot-id', slot.id);
-            slotDiv.setAttribute('data-row', rowNum);
-            slotDiv.setAttribute('data-col', slot.col_num);
-            slotDiv.setAttribute('data-distance', slot.calculated_distance);
-            slotDiv.innerHTML = `
-                <span class="slot-code">${slot.slot_code}</span>
-                <span class="slot-type">${getAdminSlotTypeIcon(slot.slot_type)}</span>
-            `;
-            slotDiv.title = `Slot ${slot.slot_code}\nType: ${slot.slot_type}\nStatus: ${slot.status}\nDistance: ${slot.calculated_distance}m`;
-            slotDiv.onclick = () => {
-                if (navigationMode) {
-                    const gate = navigationMode;
-                    clearNavigationMode();
-                    drawPathFromGateToSlot(slot, gate);
-                } else {
-                    editSlot(slot);
-                }
-            };
-            slotsContainer.appendChild(slotDiv);
+        allSlots.push({
+            id: i + 1,
+            slot_code: `${row}${col}`,
+            row: row,
+            col: col,
+            status: status,
+            slot_type: 'standard',
+            entrance_distance: 10,
+            distance: calculateSlotDistance(row, col)
         });
-        
-        rowDiv.appendChild(slotsContainer);
-        grid.appendChild(rowDiv);
+    }
+}
+
+function calculateSlotDistance(row, col) {
+    const slotPos = getSlotPosition({ row, col, slot_code: `${row}${col}` });
+    const distance = Math.abs(ENTRY_POINT.x - slotPos.roadX) + Math.abs(ENTRY_POINT.y - slotPos.roadY);
+    return Math.round(distance / 10);
+}
+
+function getSlotPosition(slot) {
+    const row = slot.row;
+    const col = slot.col;
+    
+    const slotWidth = 75;
+    const slotHeight = 90;
+    const slotGap = 8;
+    const slotAreaStartX = 100;
+    
+    const zonePositions = {
+        A: { slotY: 65, roadY: 50 },
+        B: { slotY: 285, roadY: 280 },
+        C: { slotY: 505, roadY: 600 }
+    };
+    
+    const baseX = slotAreaStartX + (col - 1) * (slotWidth + slotGap);
+    const baseY = zonePositions[row].slotY;
+    
+    return {
+        x: baseX + slotWidth / 2,
+        y: baseY + slotHeight / 2,
+        roadX: baseX + slotWidth / 2,
+        roadY: zonePositions[row].roadY,
+        slotWidth,
+        slotHeight
+    };
+}
+
+function renderAdminParkingGrid(slots) {
+    console.log('Rendering admin parking grid with', slots.length, 'slots');
+    
+    const containers = {
+        A: document.getElementById('rowASlots'),
+        B: document.getElementById('rowBSlots'),
+        C: document.getElementById('rowCSlots')
+    };
+    
+    console.log('Containers found:', {
+        A: !!containers.A,
+        B: !!containers.B,
+        C: !!containers.C
+    });
+    
+    Object.values(containers).forEach(c => c && (c.innerHTML = ''));
+    
+    const slotsByRow = { A: [], B: [], C: [] };
+    slots.forEach(slot => {
+        if (slotsByRow[slot.row]) {
+            slotsByRow[slot.row].push(slot);
+        }
+    });
+    
+    console.log('Slots by row:', {
+        A: slotsByRow.A.length,
+        B: slotsByRow.B.length,
+        C: slotsByRow.C.length
+    });
+    
+    ['A', 'B', 'C'].forEach(row => {
+        slotsByRow[row].sort((a, b) => a.col - b.col);
+        const container = containers[row];
+        if (container) {
+            slotsByRow[row].forEach(slot => {
+                const el = createAdminSlotElement(slot);
+                container.appendChild(el);
+            });
+            console.log(`Rendered ${slotsByRow[row].length} slots for row ${row}`);
+        }
     });
 }
 
-function calculateDistanceAdmin(rowIndex, colIndex, totalRows, totalCols) {
-    const ROAD_WIDTH = 8;
-    const SLOT_DEPTH = 10;
-    const ENTRY_OFFSET = 5;
+function createAdminSlotElement(slot) {
+    const div = document.createElement('div');
+    div.className = `parking-slot ${slot.status}`;
+    div.setAttribute('data-slot-id', slot.id);
+    div.setAttribute('data-row', slot.row);
+    div.setAttribute('data-col', slot.col);
+    div.setAttribute('data-distance', slot.distance);
     
-    const rowDistance = (rowIndex * (SLOT_DEPTH + ROAD_WIDTH)) + ENTRY_OFFSET + SLOT_DEPTH;
-    const colDistance = (colIndex * 8) + 5;
-    const totalDistance = rowDistance + colDistance;
+    const numDiv = document.createElement('div');
+    numDiv.className = 'slot-number';
+    numDiv.textContent = slot.slot_code;
+    div.appendChild(numDiv);
     
-    return Math.round(totalDistance * 1.15);
+    if (slot.status === 'occupied') {
+        const carDiv = document.createElement('div');
+        carDiv.className = 'slot-car';
+        carDiv.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>`;
+        div.appendChild(carDiv);
+    }
+    
+    div.addEventListener('click', () => handleAdminSlotClick(slot));
+    
+    return div;
 }
 
-function getAdminSlotTypeIcon(slotType) {
-    const icons = {
-        'standard': '&#9632;',
-        'compact': '&#9633;',
-        'electric': '&#9889;',
-        'handicap': '&#9855;'
-    };
-    return icons[slotType] || icons['standard'];
+function handleAdminSlotClick(slot) {
+    if (navigationMode) {
+        drawAdminPathToSlot(slot);
+        clearNavigationMode();
+    } else {
+        editSlot(slot);
+    }
+}
+
+function drawAdminPathToSlot(slot) {
+    const svg = document.getElementById('pathOverlay');
+    if (!svg) return;
+    
+    svg.innerHTML = '';
+    
+    const isExit = navigationMode === 'exit';
+    const startPoint = isExit ? EXIT_POINT : ENTRY_POINT;
+    const slotPos = getSlotPosition(slot);
+    
+    const waypoints = calculateAdminPathWaypoints(startPoint, slot, isExit);
+    
+    let pathD = `M ${startPoint.x} ${startPoint.y}`;
+    waypoints.forEach(wp => {
+        pathD += ` L ${wp.x} ${wp.y}`;
+    });
+    
+    const startColor = isExit ? '#ef4444' : '#10b981';
+    const endColor = '#8b5cf6';
+    
+    svg.innerHTML = `
+        <defs>
+            <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:${startColor}"/>
+                <stop offset="100%" style="stop-color:${endColor}"/>
+            </linearGradient>
+            <filter id="pathGlow">
+                <feGaussianBlur stdDeviation="4" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+        </defs>
+        
+        <circle cx="${startPoint.x}" cy="${startPoint.y}" r="18" fill="${startColor}" filter="url(#pathGlow)"/>
+        <text x="${startPoint.x}" y="${startPoint.y + 5}" text-anchor="middle" fill="white" font-size="10" font-weight="bold">${isExit ? 'EXIT' : 'ENTRY'}</text>
+        
+        <path d="${pathD}" stroke="url(#pathGradient)" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#pathGlow)"/>
+        
+        <circle cx="${slotPos.roadX}" cy="${slotPos.roadY}" r="22" fill="rgba(139, 92, 246, 0.3)" filter="url(#pathGlow)"/>
+        <circle cx="${slotPos.roadX}" cy="${slotPos.roadY}" r="10" fill="${endColor}" filter="url(#pathGlow)"/>
+        <text x="${slotPos.roadX}" y="${slotPos.roadY + 4}" text-anchor="middle" fill="white" font-size="11" font-weight="bold">${slot.slot_code}</text>
+    `;
+}
+
+function calculateAdminPathWaypoints(startPoint, slot, isExit) {
+    const waypoints = [];
+    const slotPos = getSlotPosition(slot);
+    const ZONE_B_ROAD_Y = 280;
+    
+    let targetRoadY;
+    if (slot.row === 'A') targetRoadY = 50;
+    else if (slot.row === 'B') targetRoadY = 280;
+    else if (slot.row === 'C') targetRoadY = 600;
+    
+    waypoints.push({ x: slotPos.roadX, y: ZONE_B_ROAD_Y });
+    waypoints.push({ x: slotPos.roadX, y: targetRoadY });
+    
+    return waypoints;
 }
 
 function setNavigationMode(mode) {
@@ -259,98 +407,15 @@ function clearNavigationMode() {
     const entryBtn = document.getElementById('entryBtn');
     const exitBtn = document.getElementById('exitBtn');
     const indicator = document.getElementById('navModeIndicator');
+    const svg = document.getElementById('pathOverlay');
     
     if (entryBtn) entryBtn.style.boxShadow = 'none';
     if (exitBtn) exitBtn.style.boxShadow = 'none';
     if (indicator) indicator.style.display = 'none';
-}
-
-function drawPathFromGateToSlot(slot, gate = 'entry') {
-    const grid = document.getElementById('adminParkingGrid');
-    const containerRect = document.querySelector('.parking-area').getBoundingClientRect();
-    const parkingLayout = document.querySelector('.real-parking-lot-layout');
-    const layoutRect = parkingLayout.getBoundingClientRect();
-    
-    const slotElement = document.querySelector(`[data-slot-id="${slot.id}"]`);
-    if (!slotElement) return;
-    
-    const slotRect = slotElement.getBoundingClientRect();
-    
-    let pathOverlay = document.getElementById('pathOverlay');
-    if (!pathOverlay) {
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.id = 'pathOverlay';
-        svg.className = 'path-overlay';
-        svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:20;';
-        document.querySelector('.parking-area').appendChild(svg);
-        pathOverlay = svg;
-    }
-    
-    const isEntry = gate === 'entry';
-    const startX = isEntry ? 40 : layoutRect.width - 40;
-    const startY = containerRect.height / 2;
-    
-    const endX = slotRect.left - containerRect.left + slotRect.width / 2;
-    const endY = slotRect.top - containerRect.top + slotRect.height / 2;
-    
-    const midX = (startX + endX) / 2;
-    const midY = Math.min(startY, endY) - 30;
-    
-    const pathD = `M ${startX} ${startY} Q ${midX} ${midY}, ${endX} ${endY}`;
-    
-    const startColor = isEntry ? '#10b981' : '#ef4444';
-    const endColor = '#6366f1';
-    
-    pathOverlay.innerHTML = `
-        <defs>
-            <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" style="stop-color:${startColor};stop-opacity:1" />
-                <stop offset="100%" style="stop-color:${endColor};stop-opacity:1" />
-            </linearGradient>
-            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill="${endColor}"/>
-            </marker>
-            <filter id="glow">
-                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-            </filter>
-        </defs>
-        
-        <circle cx="${startX}" cy="${startY}" r="16" fill="${startColor}" filter="url(#glow)">
-            <animate attributeName="r" values="14;18;14" dur="1.5s" repeatCount="indefinite"/>
-        </circle>
-        
-        <text x="${startX}" y="${startY + 4}" text-anchor="middle" fill="white" font-size="10" font-weight="700">${isEntry ? 'IN' : 'OUT'}</text>
-        
-        <path d="${pathD}" stroke="url(#pathGradient)" stroke-width="5" fill="none" marker-end="url(#arrowhead)" filter="url(#glow)"/>
-        
-        <circle cx="${endX}" cy="${endY}" r="24" fill="rgba(99, 102, 241, 0.3)">
-            <animate attributeName="r" values="20;28;20" dur="2s" repeatCount="indefinite"/>
-        </circle>
-        
-        <circle cx="${endX}" cy="${endY}" r="10" fill="${endColor}" filter="url(#glow)">
-            <animate attributeName="opacity" values="1;0.5;1" dur="1s" repeatCount="indefinite"/>
-        </circle>
-        
-        <text x="${endX}" y="${endY + 4}" text-anchor="middle" fill="white" font-size="10" font-weight="700">${slot.slot_code}</text>
-        
-        <rect x="${endX - 45}" y="${endY - 40}" width="90" height="28" rx="14" fill="rgba(99, 102, 241, 0.95)"/>
-        <text x="${endX}" y="${endY - 20}" text-anchor="middle" fill="white" font-size="11" font-weight="600">
-            ${slot.entrance_distance || 10}m from ${gate}
-        </text>
-    `;
+    if (svg) svg.innerHTML = '';
 }
 
 function editSlot(slot) {
-    if (navigationMode) {
-        const gate = navigationMode;
-        clearNavigationMode();
-        drawPathFromGateToSlot(slot, gate);
-        return;
-    }
     document.getElementById('editSlotId').value = slot.id;
     document.getElementById('editSlotCode').textContent = slot.slot_code;
     document.getElementById('editSlotStatus').value = slot.status;
@@ -385,10 +450,13 @@ document.getElementById('slotEditForm').addEventListener('submit', async (e) => 
 });
 
 async function loadAllReservations() {
+    console.log('Loading reservations...');
     try {
         const response = await fetch(`${API_BASE}/admin/reservations`, {
             headers: getAuthHeaders()
         });
+        
+        console.log('Reservations response status:', response.status);
         
         if (response.status === 401 || response.status === 403) {
             localStorage.removeItem('user');
@@ -400,16 +468,26 @@ async function loadAllReservations() {
         if (!response.ok) throw new Error('Failed to load reservations');
         
         const data = await response.json();
-        allReservations = data.reservations;
+        console.log('Reservations loaded:', data.reservations ? data.reservations.length : 0);
+        allReservations = data.reservations || [];
         
         renderAllReservations(allReservations);
     } catch (error) {
         console.error('Error loading reservations:', error);
+        allReservations = [];
+        renderAllReservations([]);
     }
 }
 
 function renderAllReservations(reservations) {
+    console.log('Rendering reservations:', reservations.length);
     const list = document.getElementById('allReservations');
+    console.log('Reservations list element:', !!list);
+    
+    if (!list) {
+        console.error('Reservations list element not found!');
+        return;
+    }
     
     if (reservations.length === 0) {
         list.innerHTML = `
@@ -443,24 +521,11 @@ function renderAllReservations(reservations) {
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                             ${res.start_time} - ${res.end_time}
                         </div>
-                        ${res.vehicle_plate ? `
-                            <div class="reservation-meta-item">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8zM5 19a2 2 0 100-4 2 2 0 000 4zM19 19a2 2 0 100-4 2 2 0 000 4z"/></svg>
-                                ${res.vehicle_plate}
-                            </div>
-                        ` : ''}
                     </div>
                 </div>
             </div>
             <div class="reservation-actions">
-                <span style="
-                    padding: 8px 16px;
-                    border-radius: 8px;
-                    font-size: 12px;
-                    font-weight: 600;
-                    background: ${getStatusBgColor(res.status)};
-                    color: ${getStatusColor(res.status)};
-                ">${res.status}</span>
+                <span style="padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; background: ${getStatusBgColor(res.status)}; color: ${getStatusColor(res.status)};">${res.status}</span>
                 ${res.status !== 'cancelled' && res.status !== 'completed' ? 
                     `<button class="btn btn-danger btn-small" onclick="updateReservationStatus(${res.id}, 'cancelled')">Cancel</button>
                      <button class="btn btn-primary btn-small" onclick="updateReservationStatus(${res.id}, 'completed')">Complete</button>` : ''}
@@ -511,10 +576,13 @@ async function updateReservationStatus(reservationId, status) {
 }
 
 async function loadAllUsers() {
+    console.log('Loading users...');
     try {
         const response = await fetch(`${API_BASE}/admin/users`, {
             headers: getAuthHeaders()
         });
+        
+        console.log('Users response status:', response.status);
         
         if (response.status === 401 || response.status === 403) {
             localStorage.removeItem('user');
@@ -526,16 +594,26 @@ async function loadAllUsers() {
         if (!response.ok) throw new Error('Failed to load users');
         
         const data = await response.json();
-        allUsers = data.users;
+        console.log('Users loaded:', data.users ? data.users.length : 0);
+        allUsers = data.users || [];
         
         renderAllUsers(allUsers);
     } catch (error) {
         console.error('Error loading users:', error);
+        allUsers = [];
+        renderAllUsers([]);
     }
 }
 
 function renderAllUsers(users) {
+    console.log('Rendering users:', users.length);
     const list = document.getElementById('usersList');
+    console.log('Users list element:', !!list);
+    
+    if (!list) {
+        console.error('Users list element not found!');
+        return;
+    }
     
     if (users.length === 0) {
         list.innerHTML = `
@@ -570,111 +648,43 @@ function renderAllUsers(users) {
                 </div>
             </div>
             <div class="reservation-actions">
-                <span style="
-                    padding: 8px 16px;
-                    border-radius: 8px;
-                    font-size: 12px;
-                    font-weight: 600;
-                    background: ${user.role === 'admin' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(99, 102, 241, 0.1)'};
-                    color: ${user.role === 'admin' ? '#ef4444' : '#6366f1'};
-                ">${user.role}</span>
-            </div>
-        </div>
-    `).join('');
-}
-
-async function loadActivityLogs() {
-    try {
-        const response = await fetch(`${API_BASE}/admin/activity`, {
-            headers: getAuthHeaders()
-        });
-        
-        if (response.status === 401 || response.status === 403) {
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            window.location.href = 'index.html';
-            return;
-        }
-        
-        if (!response.ok) throw new Error('Failed to load activity logs');
-        
-        const data = await response.json();
-        activityLogs = data.activity_logs;
-        
-        renderActivityLogs(activityLogs);
-    } catch (error) {
-        console.error('Error loading activity logs:', error);
-    }
-}
-
-function renderActivityLogs(logs) {
-    const list = document.getElementById('activityLogs');
-    
-    if (logs.length === 0) {
-        list.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 16px; opacity: 0.5;">
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                    <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-                </svg>
-                <p style="font-size: 16px; margin-bottom: 8px;">No activity logs</p>
-                <p style="font-size: 13px;">System activities will be logged here</p>
-            </div>
-        `;
-        return;
-    }
-    
-    list.innerHTML = logs.map(log => `
-        <div class="reservation-card">
-            <div class="reservation-info">
-                <div class="reservation-slot" style="background: linear-gradient(135deg, var(--info) 0%, #0891b2 100%);">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
-                </div>
-                <div class="reservation-details">
-                    <h4>${log.action}</h4>
-                    <p style="color: var(--text-muted); font-size: 13px;">${log.user_name || 'System'}</p>
-                    <div class="reservation-meta">
-                        <div class="reservation-meta-item">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                            ${new Date(log.created_at).toLocaleString()}
-                        </div>
-                        ${log.ip_address ? `
-                            <div class="reservation-meta-item">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-                                ${log.ip_address}
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
+                <span style="padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; background: ${user.role === 'admin' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(99, 102, 241, 0.1)'}; color: ${user.role === 'admin' ? '#ef4444' : '#6366f1'};">${user.role}</span>
             </div>
         </div>
     `).join('');
 }
 
 function showAdminTab(tab) {
-    const tabs = ['slots', 'reservations', 'users', 'activity'];
+    const tabs = ['slots', 'reservations', 'users'];
     const tabBtns = document.querySelectorAll('.admin-tabs .tab-btn');
     
     tabs.forEach((t, index) => {
         const content = document.getElementById(`${t}Tab`);
-        if (t === tab) {
-            content.style.display = 'block';
-            tabBtns[index].classList.add('active');
-            tabBtns[index].style.background = 'var(--primary)';
-            tabBtns[index].style.color = 'white';
-            tabBtns[index].style.boxShadow = '0 4px 15px rgba(99, 102, 241, 0.4)';
-        } else {
-            content.style.display = 'none';
-            tabBtns[index].classList.remove('active');
-            tabBtns[index].style.background = 'var(--bg-glass)';
-            tabBtns[index].style.color = 'var(--text-secondary)';
-            tabBtns[index].style.boxShadow = 'none';
+        if (content) {
+            if (t === tab) {
+                content.style.display = 'block';
+            } else {
+                content.style.display = 'none';
+            }
+        }
+        
+        if (tabBtns[index]) {
+            if (t === tab) {
+                tabBtns[index].classList.add('active');
+                tabBtns[index].style.background = 'var(--primary)';
+                tabBtns[index].style.color = 'white';
+                tabBtns[index].style.boxShadow = '0 4px 15px rgba(99, 102, 241, 0.4)';
+            } else {
+                tabBtns[index].classList.remove('active');
+                tabBtns[index].style.background = 'var(--bg-glass)';
+                tabBtns[index].style.color = 'var(--text-secondary)';
+                tabBtns[index].style.boxShadow = 'none';
+            }
         }
     });
     
     if (tab === 'reservations') loadAllReservations();
     if (tab === 'users') loadAllUsers();
-    if (tab === 'activity') loadActivityLogs();
 }
 
 function closeModal(modalId) {
@@ -696,6 +706,32 @@ window.onclick = function(event) {
     });
 }
 
-if (document.getElementById('adminParkingGrid')) {
-    loadAdminDashboard();
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Admin dashboard initializing...');
+    
+    // Show slots tab by default if not already shown
+    const slotsTab = document.getElementById('slotsTab');
+    if (slotsTab) {
+        slotsTab.style.display = 'block';
+    }
+    
+    if (document.getElementById('rowASlots')) {
+        console.log('Loading admin dashboard...');
+        loadAdminDashboard();
+    } else {
+        console.error('rowASlots element not found!');
+    }
+});
+
+// Also run immediately if DOM is already loaded
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    console.log('Document already ready, checking...');
+    const slotsTab = document.getElementById('slotsTab');
+    if (slotsTab) {
+        slotsTab.style.display = 'block';
+    }
+    if (document.getElementById('rowASlots')) {
+        console.log('Loading admin dashboard (fallback)...');
+        loadAdminDashboard();
+    }
 }

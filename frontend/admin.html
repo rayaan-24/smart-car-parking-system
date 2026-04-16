@@ -151,125 +151,133 @@
                         </div>
                         Parking Slots Management
                     </h2>
+                    <div class="section-actions">
+                        <button class="gate-badge gate-entry" id="entryBtn" onclick="setNavigationMode('entry')" style="cursor: pointer;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            ENTRY
+                        </button>
+                        <button class="gate-badge gate-exit" id="exitBtn" onclick="setNavigationMode('exit')" style="cursor: pointer;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+                            EXIT
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="navModeIndicator" style="display: none; margin-bottom: 16px; background: rgba(16, 185, 129, 0.9); color: white; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; text-align: center;">
+                    <span id="navModeText"></span>
+                </div>
+                
+                <div class="parking-map-container">
+                    <svg class="parking-path-svg" id="pathOverlay" viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid meet"></svg>
+                    
+                    <div class="real-parking-layout">
+                        <div class="corner-road corner-left"></div>
+                        <div class="corner-road corner-right"></div>
+                        
+                        <div class="gate-entry">
+                            <div class="gate-box">
+                                <div class="gate-pole left"></div>
+                                <div class="gate-sign">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                    <span>ENTRY</span>
+                                </div>
+                                <div class="gate-pole right"></div>
+                                <div class="gate-barrier">
+                                    <div class="barrier-stripes"></div>
+                                </div>
+                                <div class="gate-light green"></div>
+                            </div>
+                        </div>
+
+                        <div class="parking-main-area">
+                            <div class="corner-road corner-top"></div>
+                            
+                            <div class="parking-row-zone" id="zoneA">
+                                <div class="zone-label">
+                                    <span class="zone-letter">A</span>
+                                    <span class="zone-name">ZONE A</span>
+                                </div>
+                                <div class="slots-row">
+                                    <div class="slots-container" id="rowASlots"></div>
+                                </div>
+                            </div>
+
+                            <div class="main-road">
+                                <div class="road-surface">
+                                    <div class="road-center-line"></div>
+                                    <div class="road-arrows">
+                                        <span>→</span><span>→</span><span>→</span>
+                                    </div>
+                                </div>
+                                <div class="road-intersection">INTERSECTION</div>
+                            </div>
+
+                            <div class="parking-row-zone" id="zoneB">
+                                <div class="zone-label reversed">
+                                    <span class="zone-letter">B</span>
+                                    <span class="zone-name">ZONE B</span>
+                                </div>
+                                <div class="slots-row">
+                                    <div class="slots-container reversed" id="rowBSlots"></div>
+                                </div>
+                            </div>
+
+                            <div class="main-road">
+                                <div class="road-surface">
+                                    <div class="road-center-line"></div>
+                                    <div class="road-arrows">
+                                        <span>→</span><span>→</span><span>→</span>
+                                    </div>
+                                </div>
+                                <div class="road-intersection">INTERSECTION</div>
+                            </div>
+
+                            <div class="parking-row-zone" id="zoneC">
+                                <div class="zone-label">
+                                    <span class="zone-letter">C</span>
+                                    <span class="zone-name">ZONE C</span>
+                                </div>
+                                <div class="slots-row">
+                                    <div class="slots-container" id="rowCSlots"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="corner-road corner-bottom"></div>
+                        </div>
+
+                        <div class="gate-exit">
+                            <div class="gate-box exit">
+                                <div class="gate-pole left"></div>
+                                <div class="gate-sign exit">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+                                    <span>EXIT</span>
+                                </div>
+                                <div class="gate-pole right"></div>
+                                <div class="gate-barrier exit">
+                                    <div class="barrier-stripes exit"></div>
+                                </div>
+                                <div class="gate-light red"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="legend-container">
                     <div class="legend-item">
-                        <div class="legend-dot available"></div>
+                        <div class="legend-color available"></div>
                         <span>Available</span>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-dot occupied"></div>
+                        <div class="legend-color occupied"></div>
                         <span>Occupied</span>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-dot reserved"></div>
+                        <div class="legend-color reserved"></div>
                         <span>Reserved</span>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-dot maintenance"></div>
+                        <div class="legend-color maintenance"></div>
                         <span>Maintenance</span>
-                    </div>
-                </div>
-                
-                <div class="parking-map-container">
-                    <div class="parking-map-header">
-                        <div class="facility-info">
-                            <div class="facility-logo">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M13 3L4 14h7v7l9-11h-7V3z"/></svg>
-                            </div>
-                            <div>
-                                <div class="facility-name">Admin Control Center</div>
-                                <div class="facility-status">All Systems Operational</div>
-                            </div>
-                        </div>
-                        <div class="map-controls">
-                            <div class="gate-badge gate-entry" id="entryBtn" onclick="setNavigationMode('entry')" style="cursor: pointer;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                                ENTRY
-                            </div>
-                            <div class="gate-badge gate-exit" id="exitBtn" onclick="setNavigationMode('exit')" style="cursor: pointer;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
-                                EXIT
-                            </div>
-                            <div class="compass-widget">
-                                <div class="compass-needle"></div>
-                            </div>
-                        </div>
-                        <div id="navModeIndicator" style="display: none; position: absolute; left: 24px; bottom: 8px; background: rgba(16, 185, 129, 0.9); color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;">
-                            <span id="navModeText"></span>
-                        </div>
-                    </div>
-                    
-                    <div class="parking-area">
-                        <svg class="path-overlay" id="pathOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:20;"></svg>
-                        
-                        <div class="real-parking-lot-layout">
-                            <div class="gate-area entry">
-                                <div class="gate-structure">
-                                    <div class="gate-arm"></div>
-                                    <div class="gate-pole"></div>
-                                </div>
-                                <div class="gate-label">ENTRY</div>
-                                <div class="gate-light"></div>
-                            </div>
-                            
-                            <div class="parking-main-area">
-                                <div class="asphalt-bg"></div>
-                                
-                                <div class="road-network">
-                                    <div class="main-road-horizontal"></div>
-                                </div>
-                                
-                                <div class="parking-zones" id="adminParkingZones"></div>
-                                
-                                <div id="adminParkingGrid"></div>
-                            </div>
-                            
-                            <div class="gate-area exit">
-                                <div class="gate-structure">
-                                    <div class="gate-arm"></div>
-                                    <div class="gate-pole"></div>
-                                </div>
-                                <div class="gate-label">EXIT</div>
-                                <div class="gate-light"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="parking-footer">
-                        <div class="footer-stats">
-                            <div class="footer-stat">
-                                <div class="footer-stat-dot available"></div>
-                                <span>Available: <strong id="footerAvailable">0</strong></span>
-                            </div>
-                            <div class="footer-stat">
-                                <div class="footer-stat-dot occupied"></div>
-                                <span>Occupied: <strong id="footerOccupied">0</strong></span>
-                            </div>
-                            <div class="footer-stat">
-                                <div class="footer-stat-dot reserved"></div>
-                                <span>Reserved: <strong id="footerReserved">0</strong></span>
-                            </div>
-                        </div>
-                        <div class="footer-legend">
-                            <div class="footer-legend-item">
-                                <div class="footer-legend-box available"></div>
-                                Free
-                            </div>
-                            <div class="footer-legend-item">
-                                <div class="footer-legend-box occupied"></div>
-                                Taken
-                            </div>
-                            <div class="footer-legend-item">
-                                <div class="footer-legend-box reserved"></div>
-                                Booked
-                            </div>
-                            <div class="footer-legend-item">
-                                <div class="footer-legend-box maintenance"></div>
-                                Service
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

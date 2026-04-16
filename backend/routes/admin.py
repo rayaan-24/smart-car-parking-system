@@ -46,7 +46,7 @@ def update_slot(slot_id):
         if not data or 'status' not in data:
             return jsonify({'error': 'Status is required'}), 400
         
-        valid_statuses = ['available', 'occupied', 'reserved', 'maintenance']
+        valid_statuses = ['available', 'occupied', 'reserved', 'maintenance', 'assigned']
         if data['status'] not in valid_statuses:
             return jsonify({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
         
