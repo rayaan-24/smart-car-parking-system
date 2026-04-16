@@ -11,8 +11,8 @@ const CONFIG = {
     COLS: 10
 };
 
-const ENTRY_POINT = { x: 860, y: 280 };
-const EXIT_POINT = { x: 150, y: 280 };
+const ENTRY_POSITION = { x: -130, y: 240 };   // Entry gate position (Zone B level)
+const EXIT_POSITION = { x: 1150, y: 240 }; 
 
 function showMessage(message, type = 'error') {
     const messageDiv = document.getElementById('message');
@@ -206,11 +206,8 @@ function generateDemoSlots() {
 
 function calculateSlotDistance(row, col) {
     const slotPos = getSlotPosition({ row, col, slot_code: `${row}${col}` });
-    // Scale: 1 pixel = 0.05 meters
-    // Manhattan distance in pixels
-    const distancePixels = Math.abs(ENTRY_POINT.x - slotPos.roadX) + Math.abs(ENTRY_POINT.y - slotPos.roadY);
-    // Convert to meters
-    return Math.round(distancePixels * 0.05);
+    const distancePixels = Math.abs(ENTRY_POSITION.x - slotPos.roadX) + Math.abs(ENTRY_POSITION.y - slotPos.roadY);
+    return Math.round(distancePixels * 0.1);
 }
 
 function getSlotPosition(slot) {
@@ -306,74 +303,86 @@ function createAdminSlotElement(slot) {
     }
     
     div.addEventListener('click', () => handleAdminSlotClick(slot));
+    div.addEventListener('dblclick', () => handleAdminSlotDoubleClick(slot));
     
     return div;
 }
 
 function handleAdminSlotClick(slot) {
+    // Single click: show path (if navigation mode is set) or just highlight
     if (navigationMode) {
         drawAdminPathToSlot(slot);
-        clearNavigationMode();
     } else {
-        editSlot(slot);
+        // Clear any existing path and highlight slot
+        clearPath();
+        highlightSlot(slot);
+    }
+}
+
+function handleAdminSlotDoubleClick(slot) {
+    // Double click: edit slot
+    editSlot(slot);
+}
+
+function clearPath() {
+    const svg = document.getElementById('pathOverlay');
+    if (svg) svg.innerHTML = '';
+    document.querySelectorAll('.parking-slot').forEach(el => {
+        el.classList.remove('slot-highlight');
+    });
+}
+
+function highlightSlot(slot) {
+    const slotEl = document.querySelector(`[data-slot-id="${slot.id}"]`);
+    if (slotEl) {
+        slotEl.classList.add('slot-highlight');
     }
 }
 
 function drawAdminPathToSlot(slot) {
     const svg = document.getElementById('pathOverlay');
-    const parkingArea = document.querySelector('.parking-main-area');
-    if (!svg || !parkingArea) return;
+    if (!svg) return;
     
     svg.innerHTML = '';
     
     const isExit = navigationMode === 'exit';
     
-    // Get the bounding rect of the parking area for coordinate calculation
-    const areaRect = parkingArea.getBoundingClientRect();
+    // SVG viewBox coordinates
+    const slotWidth = 75;
+    const slotHeight = 90;
+    const slotGap = 8;
     
-    // Get the slot element to find its exact position
-    const slotElement = document.querySelector(`[data-slot-id="${slot.id}"]`);
-    if (!slotElement) return;
+    const rowPositions = {
+        'A': { baseY: 50, roadY: 35 },
+        'B': { baseY: 260, roadY: 240 },
+        'C': { baseY: 470, roadY: 455 }
+    };
     
-    const slotRect = slotElement.getBoundingClientRect();
+    const col = slot.col;
+    const row = slot.row;
     
-    // Calculate slot center position relative to parking area
-    const slotCenterX = slotRect.left - areaRect.left + slotRect.width / 2;
-    const slotCenterY = slotRect.top - areaRect.top + slotRect.height / 2;
+    const slotAreaStartX = 100;
+    const slotCenterX = slotAreaStartX + (col - 1) * (slotWidth + slotGap) + slotWidth / 2;
     
-    // Get container (slot area) position
-    const containerRect = slotElement.parentElement.getBoundingClientRect();
-    const containerLeft = containerRect.left - areaRect.left;
+    const rowPos = rowPositions[row];
+    const slotCenterY = rowPos.baseY + slotHeight / 2;
     
-    // Entry/Exit positions on the main road (middle of Zone B)
-    // These should be at the edges of the parking area
-    const mainRoadY = slotCenterY; // Y position of Zone B (slot's row)
-    const entryX = 30;  // Entry point at left edge
-    const exitX = areaRect.width - 30;  // Exit point at right edge
+    const startX = isExit ? EXIT_POSITION.x : ENTRY_POSITION.x;
+    const startY = rowPos.roadY;
     
-    console.log('Path Debug:', {
-        mode: isExit ? 'Exit' : 'Entry',
-        slot: slot.slot_code,
-        slotCenterX,
-        slotCenterY,
-        entryX,
-        exitX,
-        areaWidth: areaRect.width
-    });
+    // Calculate distance
+    const horizontalDist = Math.abs(startX - slotCenterX);
+    const verticalDist = Math.abs(startY - slotCenterY);
+    const totalPixels = horizontalDist + verticalDist;
+    const distanceMeters = Math.round(totalPixels * 0.1);
+    const distanceText = distanceMeters < 1 ? '<1m' : `${distanceMeters}m`;
     
-    // Start point
-    const startX = isExit ? exitX : entryX;
-    const startY = mainRoadY;
-    
-    // Path waypoints (Manhattan-style routing along road)
-    // Step 1: Move horizontally to slot column on the road
-    // Step 2: Move vertically to slot position
+    // Path waypoints
     const waypoints = [
-        { x: slotCenterX, y: startY },  // Horizontal to slot column
-        { x: slotCenterX, y: slotCenterY }  // Vertical to slot
+        { x: slotCenterX, y: startY },
+        { x: slotCenterX, y: slotCenterY }
     ];
     
-    // Build SVG path
     let pathD = `M ${startX} ${startY}`;
     waypoints.forEach(wp => {
         pathD += ` L ${wp.x} ${wp.y}`;
@@ -381,13 +390,6 @@ function drawAdminPathToSlot(slot) {
     
     const startColor = isExit ? '#ef4444' : '#10b981';
     const endColor = '#8b5cf6';
-    
-    // Calculate distance in meters
-    const horizontalDist = Math.abs(startX - slotCenterX);
-    const verticalDist = Math.abs(startY - slotCenterY);
-    const totalPixels = horizontalDist + verticalDist;
-    const distance = Math.round(totalPixels * 0.05);
-    const distanceText = distance < 1 ? '<1m' : `${distance}m`;
     
     svg.innerHTML = `
         <defs>
@@ -401,19 +403,15 @@ function drawAdminPathToSlot(slot) {
             </filter>
         </defs>
         
-        <!-- Start marker -->
         <circle cx="${startX}" cy="${startY}" r="18" fill="${startColor}" filter="url(#pathGlow)"/>
         <text x="${startX}" y="${startY + 5}" text-anchor="middle" fill="white" font-size="10" font-weight="bold">${isExit ? 'EXIT' : 'ENTRY'}</text>
         
-        <!-- Main path line -->
         <path d="${pathD}" stroke="url(#pathGradient)" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#pathGlow)"/>
         
-        <!-- End marker at slot -->
         <circle cx="${slotCenterX}" cy="${slotCenterY}" r="22" fill="rgba(139, 92, 246, 0.3)" filter="url(#pathGlow)"/>
         <circle cx="${slotCenterX}" cy="${slotCenterY}" r="10" fill="${endColor}" filter="url(#pathGlow)"/>
         <text x="${slotCenterX}" y="${slotCenterY + 4}" text-anchor="middle" fill="white" font-size="11" font-weight="bold">${slot.slot_code}</text>
         
-        <!-- Distance label -->
         <rect x="${slotCenterX - 30}" y="${slotCenterY + 15}" width="60" height="22" rx="11" fill="rgba(15, 23, 42, 0.95)" stroke="#8b5cf6" stroke-width="2"/>
         <text x="${slotCenterX}" y="${slotCenterY + 30}" text-anchor="middle" fill="#10b981" font-size="11" font-weight="bold">${distanceText}</text>
     `;

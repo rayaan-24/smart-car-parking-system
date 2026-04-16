@@ -5,6 +5,13 @@ let selectedSlotId = null;
 let aiAssignedSlot = null;
 let navigationMode = null;
 
+// ENTRY & EXIT POSITIONS (Change these values to move entry/exit points)
+// SVG viewBox: 1000x650
+// Entry point - position where vehicles enter (left side)
+// Exit point - position where vehicles exit (right side)
+const ENTRY_POSITION = { x: -130, y: 240 };   // Entry gate position (Zone B level)
+const EXIT_POSITION = { x: 1150, y: 240 };   // Exit gate position (Zone B level)
+
 function setNavigationMode(mode) {
     navigationMode = mode;
     
@@ -320,8 +327,11 @@ function createSlotElement(slot) {
         div.appendChild(carDiv);
     }
     
-    // Click handler
+    // Single click: show path
     div.addEventListener('click', () => handleSlotClick(slot));
+    
+    // Double click: show slot details
+    div.addEventListener('dblclick', () => handleSlotDoubleClick(slot));
     
     return div;
 }
@@ -333,8 +343,15 @@ function getTypeIcon(type) {
 
 function handleSlotClick(slot) {
     selectedSlotId = slot.id;
-    showSlotDetails(slot);
+    
+    // Single click: show path from entry/exit
     drawPathToSlot(slot);
+}
+
+function handleSlotDoubleClick(slot) {
+    selectedSlotId = slot.id;
+    // Double click: show slot details
+    showSlotDetails(slot);
 }
 
 function showSlotDetails(slot) {
@@ -401,8 +418,7 @@ function calculateExactDistance(slot) {
     const rowPos = rowPositions[slot.row];
     const slotCenterY = rowPos.baseY + slotHeight / 2;
     
-    // Entry point
-    const entryX = 30;
+    const entryX = ENTRY_POSITION.x;
     const entryY = rowPos.roadY;
     
     // Manhattan distance
@@ -490,13 +506,9 @@ function drawPathToSlot(slot) {
     const rowPos = rowPositions[row];
     const slotCenterY = rowPos.baseY + slotHeight / 2;
     
-    // Entry/Exit positions - on the same horizontal line as the slot's row
-    // Entry at left edge (x=30), Exit at right edge (x=970)
-    const entryX = 30;
-    const exitX = 970;
-    
+    // Entry/Exit positions - use configuration constants
     // Start point based on mode
-    const startX = isExit ? exitX : entryX;
+    const startX = isExit ? EXIT_POSITION.x : ENTRY_POSITION.x;
     const startY = rowPos.roadY;
     
     // Calculate distance (Manhattan distance in SVG coordinates)
