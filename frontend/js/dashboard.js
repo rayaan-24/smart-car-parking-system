@@ -42,10 +42,20 @@ const CONFIG = {
 };
 
 // Slot position mapping for path visualization
+// These coordinates are calibrated to match exact CSS grid positions
 const SLOT_POSITIONS = {
     A: { startX: 100, y: 100 },
     B: { startX: 100, y: 340 },
     C: { startX: 100, y: 580 }
+};
+
+// Exact slot dimensions matching CSS grid
+const SLOT_CONFIG = {
+    width: 75,
+    height: 100,
+    gap: 8,
+    containerPadding: 20,
+    zoneLabelWidth: 62
 };
 
 function showMessage(message, type = 'error') {
@@ -401,32 +411,18 @@ function showSlotDetails(slot) {
 }
 
 function calculateExactDistance(slot) {
-    // Same calculation as path distance
-    const slotWidth = 75;
-    const slotHeight = 90;
-    const slotGap = 8;
-    
-    const rowPositions = {
-        'A': { baseY: 50, roadY: 35 },
-        'B': { baseY: 260, roadY: 240 },
-        'C': { baseY: 470, roadY: 455 }
-    };
-    
-    const slotAreaStartX = 100;
-    const slotCenterX = slotAreaStartX + (slot.col - 1) * (slotWidth + slotGap) + slotWidth / 2;
-    
-    const rowPos = rowPositions[slot.row];
-    const slotCenterY = rowPos.baseY + slotHeight / 2;
+    // Use the same calibrated position calculation
+    const slotPos = getSlotElementPosition(slot);
     
     const entryX = ENTRY_POSITION.x;
-    const entryY = rowPos.roadY;
+    const entryY = slotPos.roadY;
     
-    // Manhattan distance
-    const horizontalDist = Math.abs(entryX - slotCenterX);
-    const verticalDist = Math.abs(entryY - slotCenterY);
+    // Manhattan distance in SVG coordinates
+    const horizontalDist = Math.abs(entryX - slotPos.x);
+    const verticalDist = Math.abs(entryY - slotPos.y);
     const totalPixels = horizontalDist + verticalDist;
     
-    // Convert to meters
+    // Convert to meters (1 SVG unit = 0.1 meters)
     return Math.round(totalPixels * 0.1);
 }
 
@@ -439,31 +435,74 @@ function getSlotElementPosition(slot) {
     const row = slot.row;
     const col = slot.col;
     
-    const slotWidth = 75;
-    const slotHeight = 90;
-    const slotGap = 8;
+    // Exact dimensions matching CSS grid (slots-container: 100px height, gap: 8px)
+    const slotWidth = SLOT_CONFIG.width;
+    const slotHeight = SLOT_CONFIG.height;
+    const slotGap = SLOT_CONFIG.gap;
     
-    // Slot area starts after entry gate
-    const slotAreaStartX = 100;
+    // SVG viewBox: 1000 x 650
+    // The parking main area spans ~900px wide (from x=80 to x=980)
+    // 10 slots per row with 8px gap = 10*75 + 9*8 = 822px total slot width
+    // Starting from x=90 (after zone label)
     
-    // Zone positions (based on actual layout)
+    // Zone positions in SVG coordinates (calibrated to match CSS layout)
+    // Each zone row: zone-label (62px) + slots (10 * 83px slots including gap)
+    // Total row height including gap: ~110px
+    const svgViewBoxWidth = 1000;
+    const svgViewBoxHeight = 650;
+    
+    // Calculate pixel-to-svg ratio based on container width
+    // The slots area spans from ~80px to ~920px in viewBox (840px wide)
+    // CSS grid: 10 slots × 75px + 9 × 8px gaps = 750 + 72 = 822px
+    // We map this to SVG x range: 90 to 912 (822px span)
+    
     const zonePositions = {
-        A: { slotY: 65, roadY: 50 },      // Zone A at top
-        B: { slotY: 285, roadY: 280 },    // Zone B in middle (road is at slot level)
-        C: { slotY: 505, roadY: 600 }     // Zone C at bottom
+        A: { 
+            slotY: 60,           // Top of slot area in SVG
+            centerY: 110,        // Center of slots in SVG
+            roadY: 50            // Main road Y position
+        },
+        B: { 
+            slotY: 280,          // Top of slot area in SVG
+            centerY: 330,        // Center of slots in SVG (accounting for 100px slot height)
+            roadY: 270           // Main road Y position
+        },
+        C: { 
+            slotY: 500,          // Top of slot area in SVG
+            centerY: 550,        // Center of slots in SVG
+            roadY: 490           // Main road Y position
+        }
     };
     
-    const baseX = slotAreaStartX + (col - 1) * (slotWidth + slotGap);
-    const baseY = zonePositions[row].slotY;
+    // Slot area starts after zone label (62px) + padding
+    const slotAreaStartX = 90;
+    
+    // Calculate slot center X position
+    // Each slot is 75px wide with 8px gap, 83px total spacing
+    const slotSpacing = slotWidth + slotGap;
+    
+    // CORRECT FORMULA: slot starts at (startX + (col-1)*spacing), center is + width/2
+    // For col=1: startX + 0 + 37.5 = 127.5 (not 202.5)
+    // For col=2: startX + 83 + 37.5 = 210.5
+    // For col=10: startX + 747 + 37.5 = 874.5
+    const baseX = slotAreaStartX + (col - 1) * slotSpacing;
+    
+    // Zone B in dashboard.html has NO 'reversed' class - all zones use normal order
+    // Slots appear left-to-right: A1, A2...A10 | B1, B2...B10 | C1, C2...C10
+    const finalX = baseX + slotWidth / 2;
+    
+    const zonePos = zonePositions[row];
     
     return {
-        x: baseX + slotWidth / 2,
-        y: baseY + slotHeight / 2,
-        roadX: baseX + slotWidth / 2,
-        roadY: zonePositions[row].roadY,
-        slotCenterY: baseY + slotHeight / 2,
+        x: finalX,
+        y: zonePos.centerY,
+        roadX: finalX,
+        roadY: zonePos.roadY,
+        slotCenterY: zonePos.centerY,
         slotWidth,
-        slotHeight
+        slotHeight,
+        // For waypoint calculation
+        zonePos: zonePos
     };
 }
 
@@ -476,40 +515,15 @@ function drawPathToSlot(slot) {
     
     const isExit = navigationMode === 'exit';
     
-    // SVG viewBox coordinates: 0-1000 width, 0-650 height
-    // Layout positions based on CSS (parking-main-area contains the slots)
-    // Entry gate is on the left, Exit is on the right
+    // Get exact slot position using calibrated function
+    const slotPos = getSlotElementPosition(slot);
     
-    // Calculate slot position based on row and column
-    // Each slot is ~75px wide with 8px gap, 10 slots per row
-    const slotWidth = 75;
-    const slotHeight = 90;
-    const slotGap = 8;
-    const containerPadding = 16;
+    const slotCenterX = slotPos.x;
+    const slotCenterY = slotPos.y;
     
-    // Row positions (based on actual layout)
-    const rowPositions = {
-        'A': { baseY: 50, roadY: 35 },
-        'B': { baseY: 260, roadY: 240 },
-        'C': { baseY: 470, roadY: 455 }
-    };
-    
-    // Calculate slot position in SVG coordinates
-    const col = slot.col; // 1-10
-    const row = slot.row; // A, B, C
-    
-    // Slot center position (in SVG viewBox coordinates)
-    // The slots area starts at approximately x=100 in the viewBox
-    const slotAreaStartX = 100;
-    const slotCenterX = slotAreaStartX + (col - 1) * (slotWidth + slotGap) + slotWidth / 2;
-    
-    const rowPos = rowPositions[row];
-    const slotCenterY = rowPos.baseY + slotHeight / 2;
-    
-    // Entry/Exit positions - use configuration constants
-    // Start point based on mode
+    // Entry/Exit positions
     const startX = isExit ? EXIT_POSITION.x : ENTRY_POSITION.x;
-    const startY = rowPos.roadY;
+    const startY = slotPos.roadY;
     
     // Calculate distance (Manhattan distance in SVG coordinates)
     const horizontalDist = Math.abs(startX - slotCenterX);
@@ -520,7 +534,7 @@ function drawPathToSlot(slot) {
     const distanceMeters = Math.round(totalPixels * 0.1);
     const distanceText = distanceMeters < 1 ? '<1m' : `${distanceMeters}m`;
     
-    // Path waypoints
+    // Path waypoints - direct path from entry/exit to slot
     const waypoints = [
         { x: slotCenterX, y: startY },
         { x: slotCenterX, y: slotCenterY }
@@ -563,7 +577,7 @@ function drawPathToSlot(slot) {
     startLabel.textContent = isExit ? 'EXIT' : 'ENTRY';
     pathGroup.appendChild(startLabel);
     
-    // End marker
+    // End marker (pulsing ring)
     const endMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     endMarker.setAttribute('cx', slotCenterX);
     endMarker.setAttribute('cy', slotCenterY);
@@ -572,6 +586,7 @@ function drawPathToSlot(slot) {
     endMarker.setAttribute('filter', 'url(#pathGlow)');
     pathGroup.appendChild(endMarker);
     
+    // End dot
     const endDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     endDot.setAttribute('cx', slotCenterX);
     endDot.setAttribute('cy', slotCenterY);
@@ -580,7 +595,7 @@ function drawPathToSlot(slot) {
     endDot.setAttribute('filter', 'url(#pathGlow)');
     pathGroup.appendChild(endDot);
     
-    // Slot label
+    // Slot label (exact slot code)
     const slotLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     slotLabel.setAttribute('x', slotCenterX);
     slotLabel.setAttribute('y', slotCenterY + 4);
@@ -591,7 +606,7 @@ function drawPathToSlot(slot) {
     slotLabel.textContent = slot.slot_code;
     pathGroup.appendChild(slotLabel);
     
-    // Distance label
+    // Distance label box
     const distBox = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     distBox.setAttribute('x', slotCenterX - 30);
     distBox.setAttribute('y', slotCenterY + 18);
@@ -603,6 +618,7 @@ function drawPathToSlot(slot) {
     distBox.setAttribute('stroke-width', '2');
     pathGroup.appendChild(distBox);
     
+    // Distance text
     const distText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     distText.setAttribute('x', slotCenterX);
     distText.setAttribute('y', slotCenterY + 33);
@@ -613,7 +629,7 @@ function drawPathToSlot(slot) {
     distText.textContent = distanceText;
     pathGroup.appendChild(distText);
     
-    // Highlight the slot
+    // Highlight the corresponding slot element
     highlightSlot(slot);
 }
 

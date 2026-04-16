@@ -214,24 +214,34 @@ function getSlotPosition(slot) {
     const row = slot.row;
     const col = slot.col;
     
+    // Calibrated dimensions matching CSS grid
     const slotWidth = 75;
-    const slotHeight = 90;
+    const slotHeight = 100;
     const slotGap = 8;
-    const slotAreaStartX = 100;
+    const slotAreaStartX = 90;
     
+    // Calibrated zone positions matching CSS layout
     const zonePositions = {
-        A: { slotY: 65, roadY: 50 },
-        B: { slotY: 285, roadY: 280 },
-        C: { slotY: 505, roadY: 600 }
+        A: { slotY: 60, roadY: 50, centerY: 110 },
+        B: { slotY: 280, roadY: 270, centerY: 330 },
+        C: { slotY: 500, roadY: 490, centerY: 550 }
     };
     
-    const baseX = slotAreaStartX + (col - 1) * (slotWidth + slotGap);
+    const slotSpacing = slotWidth + slotGap;
+    
+    // CORRECT FORMULA: base + (col-1)*spacing + width/2
+    // For col=1: 90 + 0 + 37.5 = 127.5
+    // For col=2: 90 + 83 + 37.5 = 210.5
+    const baseX = slotAreaStartX + (col - 1) * slotSpacing;
     const baseY = zonePositions[row].slotY;
     
+    // admin.html has NO reversed class for any zone - all normal order
+    const finalX = baseX + slotWidth / 2;
+    
     return {
-        x: baseX + slotWidth / 2,
-        y: baseY + slotHeight / 2,
-        roadX: baseX + slotWidth / 2,
+        x: finalX,
+        y: zonePositions[row].centerY,
+        roadX: finalX,
         roadY: zonePositions[row].roadY,
         slotWidth,
         slotHeight
@@ -347,28 +357,12 @@ function drawAdminPathToSlot(slot) {
     
     const isExit = navigationMode === 'exit';
     
-    // SVG viewBox coordinates
-    const slotWidth = 75;
-    const slotHeight = 90;
-    const slotGap = 8;
-    
-    const rowPositions = {
-        'A': { baseY: 50, roadY: 35 },
-        'B': { baseY: 260, roadY: 240 },
-        'C': { baseY: 470, roadY: 455 }
-    };
-    
-    const col = slot.col;
-    const row = slot.row;
-    
-    const slotAreaStartX = 100;
-    const slotCenterX = slotAreaStartX + (col - 1) * (slotWidth + slotGap) + slotWidth / 2;
-    
-    const rowPos = rowPositions[row];
-    const slotCenterY = rowPos.baseY + slotHeight / 2;
-    
+    // Use calibrated getSlotPosition function
+    const slotPos = getSlotPosition(slot);
+    const slotCenterX = slotPos.x;
+    const slotCenterY = slotPos.y;
     const startX = isExit ? EXIT_POSITION.x : ENTRY_POSITION.x;
-    const startY = rowPos.roadY;
+    const startY = slotPos.roadY;
     
     // Calculate distance
     const horizontalDist = Math.abs(startX - slotCenterX);

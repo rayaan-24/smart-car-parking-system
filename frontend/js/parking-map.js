@@ -222,14 +222,62 @@ function updateStats() {
 function getSlotPosition(slot) {
     const row = slot.row;
     const col = slot.col;
+    
+    // Exact dimensions matching CSS grid (slots-container: 100px height, gap: 8px)
     const slotWidth = 75;
+    const slotHeight = 100;
     const slotGap = 8;
     
-    const positions = { A: { baseY: 65 }, B: { baseY: 295 }, C: { baseY: 525 } };
-    const baseX = 80 + (col - 1) * (slotWidth + slotGap);
-    const baseY = positions[row].baseY;
+    // Zone positions calibrated to match CSS layout
+    // Each zone: zone-label (62px) + slots (10 * 83px - 8px = 822px)
+    // SVG viewBox: 1000 x 650
+    const zonePositions = {
+        A: { 
+            slotY: 60,           // Top of slot area in SVG
+            centerY: 110,        // Center of slots (slotY + slotHeight/2)
+            roadY: 50            // Main road Y position
+        },
+        B: { 
+            slotY: 280,          // Top of slot area in SVG
+            centerY: 330,        // Center of slots
+            roadY: 270           // Main road Y position
+        },
+        C: { 
+            slotY: 500,          // Top of slot area in SVG
+            centerY: 550,        // Center of slots
+            roadY: 490           // Main road Y position
+        }
+    };
     
-    return { x: baseX + slotWidth / 2, y: baseY + 45 };
+    // Slot area starts after zone label (62px) + padding
+    const slotAreaStartX = 90;
+    const slotSpacing = slotWidth + slotGap;
+    
+    // CORRECT FORMULA: slot starts at (startX + (col-1)*spacing), center is + width/2
+    // For col=1: startX + 0 + 37.5 = 127.5
+    // For col=2: startX + 83 + 37.5 = 210.5
+    // For col=10: startX + 747 + 37.5 = 874.5
+    
+    // Zone B in parking-map.html HAS 'reversed' class, so B1 appears at RIGHT
+    // Zone A and C have no reversed class, so they are normal (A1 at left)
+    let finalX;
+    if (row === 'B') {
+        // B zone is reversed in parking-map.html - B1 at RIGHTMOST position
+        finalX = slotAreaStartX + (10 - col) * slotSpacing + slotWidth / 2;
+    } else {
+        // A and C zones are normal order
+        finalX = slotAreaStartX + (col - 1) * slotSpacing + slotWidth / 2;
+    }
+    
+    const zonePos = zonePositions[row];
+    
+    return { 
+        x: finalX, 
+        y: zonePos.centerY,
+        roadY: zonePos.roadY,
+        slotWidth,
+        slotHeight
+    };
 }
 
 function drawPathToSlot(slot) {
@@ -239,11 +287,11 @@ function drawPathToSlot(slot) {
     
     pathGroup.innerHTML = '';
     
-    // Entry point
+    // Entry point - calibrated to match left side gate position
     const entryX = 30;
-    const entryY = 325;
+    const entryY = 325; // Middle of the layout
     
-    // Slot position
+    // Slot position using calibrated function
     const slotPos = getSlotPosition(slot);
     
     // Calculate waypoints
@@ -288,7 +336,7 @@ function drawPathToSlot(slot) {
     startLabel.textContent = 'IN';
     pathGroup.appendChild(startLabel);
     
-    // End marker
+    // End marker (pulsing ring)
     const endMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     endMarker.setAttribute('cx', slotPos.x);
     endMarker.setAttribute('cy', slotPos.y);
@@ -305,6 +353,7 @@ function drawPathToSlot(slot) {
     endDot.setAttribute('filter', 'url(#glow)');
     pathGroup.appendChild(endDot);
     
+    // Slot label (exact slot code)
     const slotLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     slotLabel.setAttribute('x', slotPos.x);
     slotLabel.setAttribute('y', slotPos.y + 4);
@@ -315,7 +364,7 @@ function drawPathToSlot(slot) {
     slotLabel.textContent = slot.slot_number;
     pathGroup.appendChild(slotLabel);
     
-    // Distance label
+    // Distance label box
     const distBox = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     distBox.setAttribute('x', slotPos.x - 35);
     distBox.setAttribute('y', slotPos.y + 20);
@@ -340,25 +389,18 @@ function drawPathToSlot(slot) {
 
 function calculateWaypoints(entryX, entryY, slot) {
     const waypoints = [{ x: entryX, y: entryY }];
-    const roadY = { A: 180, B: 270, C: 450 };
-    const midX = entryX + 200;
+    const slotPos = getSlotPosition(slot);
     
-    if (slot.row === 'A') {
-        waypoints.push({ x: midX, y: entryY });
-        waypoints.push({ x: midX, y: roadY.A });
-        waypoints.push({ x: getSlotPosition(slot).x, y: roadY.A });
-        waypoints.push({ x: getSlotPosition(slot).x, y: getSlotPosition(slot).y });
-    } else if (slot.row === 'B') {
-        waypoints.push({ x: midX, y: entryY });
-        waypoints.push({ x: midX, y: roadY.B });
-        waypoints.push({ x: getSlotPosition(slot).x, y: roadY.B });
-        waypoints.push({ x: getSlotPosition(slot).x, y: getSlotPosition(slot).y });
-    } else if (slot.row === 'C') {
-        waypoints.push({ x: midX, y: entryY });
-        waypoints.push({ x: midX, y: roadY.C });
-        waypoints.push({ x: getSlotPosition(slot).x, y: roadY.C });
-        waypoints.push({ x: getSlotPosition(slot).x, y: getSlotPosition(slot).y });
-    }
+    // Use the calibrated roadY from getSlotPosition
+    const roadY = { 
+        A: 50, 
+        B: 270, 
+        C: 490 
+    };
+    
+    // Direct path: Entry -> horizontal to slot X -> vertical down to slot
+    waypoints.push({ x: slotPos.x, y: entryY });
+    waypoints.push({ x: slotPos.x, y: slotPos.y });
     
     return waypoints;
 }
