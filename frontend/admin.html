@@ -168,8 +168,6 @@
                 </div>
                 
                 <div class="parking-map-container">
-                    <svg class="parking-path-svg" id="pathOverlay" viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid meet"></svg>
-                    
                     <div class="real-parking-layout">
                         <div class="corner-road corner-left"></div>
                         <div class="corner-road corner-right"></div>
@@ -189,7 +187,9 @@
                             </div>
                         </div>
 
-                        <div class="parking-main-area">
+                        <div class="parking-main-area" style="position: relative;">
+                            <svg class="parking-path-svg" id="pathOverlay" viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50;"></svg>
+                            
                             <div class="corner-road corner-top"></div>
                             
                             <div class="parking-row-zone" id="zoneA">
@@ -213,12 +213,12 @@
                             </div>
 
                             <div class="parking-row-zone" id="zoneB">
-                                <div class="zone-label reversed">
+                                <div class="zone-label">
                                     <span class="zone-letter">B</span>
                                     <span class="zone-name">ZONE B</span>
                                 </div>
                                 <div class="slots-row">
-                                    <div class="slots-container reversed" id="rowBSlots"></div>
+                                    <div class="slots-container" id="rowBSlots"></div>
                                 </div>
                             </div>
 

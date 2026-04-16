@@ -210,16 +210,32 @@ function generateDemoSlots() {
 }
 
 function calculateDistance(row, col) {
-    // Entry point is at B10 (x=860, y=280)
-    const ENTRY_X = 860;
-    const ENTRY_Y = 280;
+    // SVG viewBox coordinates: 0-1000 width, 0-650 height
+    const slotWidth = 75;
+    const slotHeight = 90;
+    const slotGap = 8;
     
-    // Get slot position
-    const slotPos = getSlotElementPosition({ row, col, slot_code: `${row}${col}` });
+    const rowPositions = {
+        'A': { baseY: 50, roadY: 35 },
+        'B': { baseY: 260, roadY: 240 },
+        'C': { baseY: 470, roadY: 455 }
+    };
     
-    // Manhattan distance: |x1-x2| + |y1-y2|
-    const distance = Math.abs(ENTRY_X - slotPos.roadX) + Math.abs(ENTRY_Y - slotPos.roadY);
-    return Math.round(distance / 10);
+    const slotAreaStartX = 100;
+    const slotCenterX = slotAreaStartX + (col - 1) * (slotWidth + slotGap) + slotWidth / 2;
+    
+    const rowPos = rowPositions[row];
+    const slotCenterY = rowPos.baseY + slotHeight / 2;
+    
+    // Entry point at right edge (B10 column), on Zone B road
+    const entryX = 30; // Entry at left
+    const entryY = 240; // Zone B road Y
+    
+    // Calculate Manhattan distance
+    const distancePixels = Math.abs(entryX - slotCenterX) + Math.abs(entryY - slotCenterY);
+    
+    // Convert to meters (1 SVG unit = 0.1 meters)
+    return Math.round(distancePixels * 0.1);
 }
 
 function renderParkingGrid(slots) {
@@ -255,16 +271,15 @@ function renderParkingGrid(slots) {
         C: slotsByRow.C.length
     });
     
-    // Sort and render
+    // Sort and render (ascending order for all rows)
     ['A', 'B', 'C'].forEach(row => {
         slotsByRow[row].sort((a, b) => a.col - b.col);
         const container = containers[row];
         if (container) {
+            container.classList.remove('reversed');
             slotsByRow[row].forEach(slot => {
-                const el = createSlotElement(slot);
-                container.appendChild(el);
+                container.appendChild(createSlotElement(slot));
             });
-            console.log(`Rendered ${slotsByRow[row].length} slots for row ${row}`);
         }
     });
 }
@@ -325,6 +340,9 @@ function handleSlotClick(slot) {
 function showSlotDetails(slot) {
     const content = document.getElementById('slotDetailContent');
     
+    // Calculate exact distance from entry point
+    const exactDistance = calculateExactDistance(slot);
+    
     content.innerHTML = `
         <div class="ai-result">
             <div class="ai-badge">
@@ -344,8 +362,8 @@ function showSlotDetails(slot) {
                     <div class="ai-detail-value">${slot.slot_type || 'standard'}</div>
                 </div>
                 <div class="ai-detail">
-                    <div class="ai-detail-label">Distance</div>
-                    <div class="ai-detail-value">${slot.distance}m</div>
+                    <div class="ai-detail-label">Distance from Entry</div>
+                    <div class="ai-detail-value" style="color: #10b981; font-weight: 700;">${exactDistance}m</div>
                 </div>
                 <div class="ai-detail">
                     <div class="ai-detail-label">Status</div>
@@ -363,6 +381,37 @@ function showSlotDetails(slot) {
     `;
     
     document.getElementById('slotDetailModal').style.display = 'block';
+}
+
+function calculateExactDistance(slot) {
+    // Same calculation as path distance
+    const slotWidth = 75;
+    const slotHeight = 90;
+    const slotGap = 8;
+    
+    const rowPositions = {
+        'A': { baseY: 50, roadY: 35 },
+        'B': { baseY: 260, roadY: 240 },
+        'C': { baseY: 470, roadY: 455 }
+    };
+    
+    const slotAreaStartX = 100;
+    const slotCenterX = slotAreaStartX + (slot.col - 1) * (slotWidth + slotGap) + slotWidth / 2;
+    
+    const rowPos = rowPositions[slot.row];
+    const slotCenterY = rowPos.baseY + slotHeight / 2;
+    
+    // Entry point
+    const entryX = 30;
+    const entryY = rowPos.roadY;
+    
+    // Manhattan distance
+    const horizontalDist = Math.abs(entryX - slotCenterX);
+    const verticalDist = Math.abs(entryY - slotCenterY);
+    const totalPixels = horizontalDist + verticalDist;
+    
+    // Convert to meters
+    return Math.round(totalPixels * 0.1);
 }
 
 function getStatusColor(status) {
@@ -411,90 +460,118 @@ function drawPathToSlot(slot) {
     
     const isExit = navigationMode === 'exit';
     
-    // CONSTANT entry/exit points (NEVER change these)
-    const ENTRY_POINT = { x: 0, y: 280  };  // B10 position
-    // const ENTRY_POINT = { x: 860, y: 280 };  // B10 position
-    const EXIT_POINT = { x: 1160, y: 280 };   // B2 position
+    // SVG viewBox coordinates: 0-1000 width, 0-650 height
+    // Layout positions based on CSS (parking-main-area contains the slots)
+    // Entry gate is on the left, Exit is on the right
     
-    // Use entry or exit based on mode
-    const startPoint = isExit ? EXIT_POINT : ENTRY_POINT;
+    // Calculate slot position based on row and column
+    // Each slot is ~75px wide with 8px gap, 10 slots per row
+    const slotWidth = 75;
+    const slotHeight = 90;
+    const slotGap = 8;
+    const containerPadding = 16;
     
-    // Get slot position
-    const slotPos = getSlotElementPosition(slot);
+    // Row positions (based on actual layout)
+    const rowPositions = {
+        'A': { baseY: 50, roadY: 35 },
+        'B': { baseY: 260, roadY: 240 },
+        'C': { baseY: 470, roadY: 455 }
+    };
     
-    // Calculate waypoints using proper road-based routing
-    const waypoints = calculatePathWaypoints(startPoint, slot, isExit);
+    // Calculate slot position in SVG coordinates
+    const col = slot.col; // 1-10
+    const row = slot.row; // A, B, C
     
-    // Debug logging
-    console.log('Path Debug:', {
-        mode: isExit ? 'Exit' : 'Entry',
-        start: startPoint,
-        slot: slot.slot_code,
-        slotPos: slotPos,
-        waypoints: waypoints
+    // Slot center position (in SVG viewBox coordinates)
+    // The slots area starts at approximately x=100 in the viewBox
+    const slotAreaStartX = 100;
+    const slotCenterX = slotAreaStartX + (col - 1) * (slotWidth + slotGap) + slotWidth / 2;
+    
+    const rowPos = rowPositions[row];
+    const slotCenterY = rowPos.baseY + slotHeight / 2;
+    
+    // Entry/Exit positions - on the same horizontal line as the slot's row
+    // Entry at left edge (x=30), Exit at right edge (x=970)
+    const entryX = 30;
+    const exitX = 970;
+    
+    // Start point based on mode
+    const startX = isExit ? exitX : entryX;
+    const startY = rowPos.roadY;
+    
+    // Calculate distance (Manhattan distance in SVG coordinates)
+    const horizontalDist = Math.abs(startX - slotCenterX);
+    const verticalDist = Math.abs(startY - slotCenterY);
+    const totalPixels = horizontalDist + verticalDist;
+    
+    // Convert to real meters: SVG units to meters (1 SVG unit = 0.1 meters)
+    const distanceMeters = Math.round(totalPixels * 0.1);
+    const distanceText = distanceMeters < 1 ? '<1m' : `${distanceMeters}m`;
+    
+    // Path waypoints
+    const waypoints = [
+        { x: slotCenterX, y: startY },
+        { x: slotCenterX, y: slotCenterY }
+    ];
+    
+    // Build path
+    let pathD = `M ${startX} ${startY}`;
+    waypoints.forEach(wp => {
+        pathD += ` L ${wp.x} ${wp.y}`;
     });
     
-    // Create path string - ALWAYS start from entry/exit point
-    let pathD = `M ${startPoint.x} ${startPoint.y}`;
-    for (let i = 0; i < waypoints.length; i++) {
-        pathD += ` L ${waypoints[i].x} ${waypoints[i].y}`;
-    }
-    
-    // Draw main path
+    // Draw path
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', pathD);
     path.setAttribute('stroke', 'url(#pathGradient)');
-    path.setAttribute('stroke-width', '8');
+    path.setAttribute('stroke-width', '6');
     path.setAttribute('fill', 'none');
     path.setAttribute('stroke-linecap', 'round');
     path.setAttribute('stroke-linejoin', 'round');
     path.setAttribute('filter', 'url(#pathGlow)');
-    path.setAttribute('stroke-dasharray', '2000');
-    path.setAttribute('stroke-dashoffset', '2000');
-    path.style.animation = 'drawPath 1.5s ease forwards';
     pathGroup.appendChild(path);
     
-    // Start marker (entry/exit point)
+    // Start marker
     const startMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    startMarker.setAttribute('cx', startPoint.x);
-    startMarker.setAttribute('cy', startPoint.y);
-    startMarker.setAttribute('r', '20');
+    startMarker.setAttribute('cx', startX);
+    startMarker.setAttribute('cy', startY);
+    startMarker.setAttribute('r', '18');
     startMarker.setAttribute('fill', isExit ? '#ef4444' : '#10b981');
     startMarker.setAttribute('filter', 'url(#pathGlow)');
     pathGroup.appendChild(startMarker);
     
     // Start label
     const startLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    startLabel.setAttribute('x', startPoint.x);
-    startLabel.setAttribute('y', startPoint.y + 5);
+    startLabel.setAttribute('x', startX);
+    startLabel.setAttribute('y', startY + 5);
     startLabel.setAttribute('text-anchor', 'middle');
     startLabel.setAttribute('fill', 'white');
-    startLabel.setAttribute('font-size', '11');
+    startLabel.setAttribute('font-size', '10');
     startLabel.setAttribute('font-weight', 'bold');
     startLabel.textContent = isExit ? 'EXIT' : 'ENTRY';
     pathGroup.appendChild(startLabel);
     
-    // End marker at slot
+    // End marker
     const endMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    endMarker.setAttribute('cx', slotPos.roadX);
-    endMarker.setAttribute('cy', slotPos.roadY);
-    endMarker.setAttribute('r', '25');
+    endMarker.setAttribute('cx', slotCenterX);
+    endMarker.setAttribute('cy', slotCenterY);
+    endMarker.setAttribute('r', '22');
     endMarker.setAttribute('fill', 'rgba(139, 92, 246, 0.3)');
     endMarker.setAttribute('filter', 'url(#pathGlow)');
     pathGroup.appendChild(endMarker);
     
     const endDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    endDot.setAttribute('cx', slotPos.roadX);
-    endDot.setAttribute('cy', slotPos.roadY);
-    endDot.setAttribute('r', '12');
+    endDot.setAttribute('cx', slotCenterX);
+    endDot.setAttribute('cy', slotCenterY);
+    endDot.setAttribute('r', '10');
     endDot.setAttribute('fill', '#8b5cf6');
     endDot.setAttribute('filter', 'url(#pathGlow)');
     pathGroup.appendChild(endDot);
     
     // Slot label
     const slotLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    slotLabel.setAttribute('x', slotPos.roadX);
-    slotLabel.setAttribute('y', slotPos.roadY + 4);
+    slotLabel.setAttribute('x', slotCenterX);
+    slotLabel.setAttribute('y', slotCenterY + 4);
     slotLabel.setAttribute('text-anchor', 'middle');
     slotLabel.setAttribute('fill', 'white');
     slotLabel.setAttribute('font-size', '11');
@@ -503,78 +580,29 @@ function drawPathToSlot(slot) {
     pathGroup.appendChild(slotLabel);
     
     // Distance label
-    const distance = calculateManhattanDistance(startPoint, slotPos);
     const distBox = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    distBox.setAttribute('x', slotPos.roadX - 35);
-    distBox.setAttribute('y', slotPos.roadY + 20);
-    distBox.setAttribute('width', '70');
-    distBox.setAttribute('height', '24');
-    distBox.setAttribute('rx', '12');
+    distBox.setAttribute('x', slotCenterX - 30);
+    distBox.setAttribute('y', slotCenterY + 18);
+    distBox.setAttribute('width', '60');
+    distBox.setAttribute('height', '22');
+    distBox.setAttribute('rx', '11');
     distBox.setAttribute('fill', 'rgba(15, 23, 42, 0.95)');
     distBox.setAttribute('stroke', '#8b5cf6');
     distBox.setAttribute('stroke-width', '2');
     pathGroup.appendChild(distBox);
     
     const distText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    distText.setAttribute('x', slotPos.roadX);
-    distText.setAttribute('y', slotPos.roadY + 36);
+    distText.setAttribute('x', slotCenterX);
+    distText.setAttribute('y', slotCenterY + 33);
     distText.setAttribute('text-anchor', 'middle');
     distText.setAttribute('fill', '#10b981');
-    distText.setAttribute('font-size', '12');
+    distText.setAttribute('font-size', '11');
     distText.setAttribute('font-weight', 'bold');
-    distText.textContent = `${distance}m`;
+    distText.textContent = distanceText;
     pathGroup.appendChild(distText);
     
     // Highlight the slot
     highlightSlot(slot);
-}
-
-function calculateManhattanDistance(startPoint, slotPos) {
-    // Manhattan distance: |x1-x2| + |y1-y2|
-    const dx = Math.abs(startPoint.x - slotPos.roadX);
-    const dy = Math.abs(startPoint.y - slotPos.roadY);
-    return Math.round((dx + dy) / 10);  // Scale down for display
-}
-
-function calculatePathWaypoints(startPoint, slot, isExit) {
-    const waypoints = [];
-    
-    // Get slot position
-    const slotPos = getSlotElementPosition(slot);
-    
-    // Zone B row is the road level (y = 280)
-    const ZONE_B_ROAD_Y = 280;
-    
-    // Target slot's row Y position
-    const targetRow = slot.row;
-    let targetRoadY;
-    
-    if (targetRow === 'A') {
-        targetRoadY = 50;   // Top road
-    } else if (targetRow === 'B') {
-        targetRoadY = 280;  // Zone B road (same level as entry/exit)
-    } else if (targetRow === 'C') {
-        targetRoadY = 600;  // Bottom road
-    }
-    
-    // ROUTING LOGIC:
-    // 1. Start from entry/exit point (already done in drawPathToSlot)
-    // 2. Go to slot's X position on Zone B road (horizontal movement)
-    // 3. Go up/down to target row's road (vertical movement)
-    
-    // Step 1: Move horizontally to slot's X position on Zone B road
-    waypoints.push({ 
-        x: slotPos.roadX, 
-        y: ZONE_B_ROAD_Y 
-    });
-    
-    // Step 2: Move vertically to target row's road
-    waypoints.push({ 
-        x: slotPos.roadX, 
-        y: targetRoadY 
-    });
-    
-    return waypoints;
 }
 
 function highlightSlot(slot) {
@@ -704,6 +732,10 @@ function showReserveModal(slotId) {
     if (slot) {
         document.getElementById('selectedSlotDisplay').textContent = `${slot.slot_code} - ${slot.slot_type || 'standard'}`;
         document.getElementById('reserveSlotId').value = slot.id;
+        
+        // Show exact distance
+        const exactDistance = calculateExactDistance(slot);
+        document.getElementById('selectedSlotDistance').textContent = `${exactDistance} meters from Entry`;
     }
     
     const today = new Date().toISOString().split('T')[0];

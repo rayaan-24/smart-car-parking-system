@@ -105,22 +105,6 @@
                 </div>
 
                 <div class="parking-map-container">
-                    <!-- Path SVG Overlay -->
-                    <svg class="parking-path-svg" id="parkingPathSvg" viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid meet">
-                        <defs>
-                            <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" style="stop-color:#10b981"/>
-                                <stop offset="50%" style="stop-color:#3b82f6"/>
-                                <stop offset="100%" style="stop-color:#8b5cf6"/>
-                            </linearGradient>
-                            <filter id="pathGlow" x="-50%" y="-50%" width="200%" height="200%">
-                                <feGaussianBlur stdDeviation="4" result="blur"/>
-                                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                            </filter>
-                        </defs>
-                        <g id="pathGroup"></g>
-                    </svg>
-
                     <!-- Parking Lot Layout -->
                     <div class="real-parking-layout">
                         
@@ -145,7 +129,22 @@
                         </div>
 
                         <!-- Main Parking Area -->
-                        <div class="parking-main-area">
+                        <div class="parking-main-area" style="position: relative;">
+                            <!-- Path SVG Overlay -->
+                            <svg class="parking-path-svg" id="parkingPathSvg" viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid meet" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50;">
+                                <defs>
+                                    <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" style="stop-color:#10b981"/>
+                                        <stop offset="50%" style="stop-color:#3b82f6"/>
+                                        <stop offset="100%" style="stop-color:#8b5cf6"/>
+                                    </linearGradient>
+                                    <filter id="pathGlow" x="-50%" y="-50%" width="200%" height="200%">
+                                        <feGaussianBlur stdDeviation="4" result="blur"/>
+                                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                                    </filter>
+                                </defs>
+                                <g id="pathGroup"></g>
+                            </svg>
                             
                             <!-- Top Corner Road -->
                             <div class="corner-road corner-top"></div>
@@ -174,12 +173,12 @@
 
                             <!-- Zone B Row -->
                             <div class="parking-row-zone" id="zoneB">
-                                <div class="zone-label reversed">
+                                <div class="zone-label">
                                     <span class="zone-letter">B</span>
                                     <span class="zone-name">ZONE B</span>
                                 </div>
                                 <div class="slots-row">
-                                    <div class="slots-container reversed" id="rowBSlots"></div>
+                                    <div class="slots-container" id="rowBSlots"></div>
                                 </div>
                             </div>
 
@@ -299,6 +298,10 @@
                     <div id="selectedSlotDisplay" class="selected-slot-display"></div>
                 </div>
                 <div class="form-group">
+                    <label>Distance from Entry</label>
+                    <div id="selectedSlotDistance" class="selected-slot-display" style="color: #10b981; font-weight: 700;"></div>
+                </div>
+                <div class="form-group">
                     <label for="reservationDate">Date</label>
                     <input type="date" id="reservationDate" name="date" required>
                 </div>
@@ -337,6 +340,22 @@
                 <button class="close" onclick="closeModal('aiResultModal')">&times;</button>
             </div>
             <div id="aiResult"></div>
+        </div>
+    </div>
+    
+    <!-- Slot Detail Modal -->
+    <div id="slotDetailModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <div class="modal-title-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                    </div>
+                    Slot Details
+                </h2>
+                <button class="close" onclick="closeModal('slotDetailModal')">&times;</button>
+            </div>
+            <div id="slotDetailContent"></div>
         </div>
     </div>
     
